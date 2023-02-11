@@ -593,7 +593,7 @@ OD_COF_Summary$Label <- rep("COF", nrow(OD_COF_Summary))
 ##################################
 ggplot(OD_COF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
-  scale_color_gradient(low="#0000AA55", high="#AA000055") +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
   facet_grid(. ~ Label) +
   scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
