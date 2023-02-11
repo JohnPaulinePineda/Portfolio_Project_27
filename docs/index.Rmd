@@ -1,0 +1,806 @@
+---
+title: "R : Estimating Outlier Scores Using Density and Distance-Based Anomaly Detection
+  Algorithms"
+author: "John Pauline Pineda"
+date: "February 13, 2023"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    theme: readable
+    highlight: tango
+    css: doc.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
+```
+# **1. Table of Contents**
+|
+| This document implements density and distance-based anomaly detection algorithms for estimating outlier scores using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>.    
+|
+##  1.1 Sample Data
+|
+| The <mark style="background-color: #EEEEEE;color: #FF0000">**Satellite**</mark>  dataset from the <mark style="background-color: #CCECFF">**isotree**</mark> and <mark style="background-color: #CCECFF">**mlbench**</mark> packages was used for this illustrated example.
+|
+| Preliminary dataset assessment:
+|
+| **[A]** 6435 rows (observations)
+| 
+| **[B]** 37 columns (variables)
+|      **[B.1]** 1/37 label = <span style="color: #FF0000">Status</span> variable (factor)
+|             **[B.1.1]** Category 1 = <span style="color: #FF0000">Status=Outlier</span> 
+|             **[B.1.2]** Category 2 = <span style="color: #FF0000">Status=Valid</span> 
+|      **[B.2]** 36/37 descriptors = 36/36 numeric
+|     
+|  
+```{r section_1.1, warning=FALSE, message=FALSE}
+##################################
+# Loading R libraries
+##################################
+library(AppliedPredictiveModeling)
+library(caret)
+library(rpart)
+library(lattice)
+library(dplyr)
+library(tidyr)
+library(moments)
+library(skimr)
+library(RANN)
+library(pls)
+library(corrplot)
+library(tidyverse)
+library(lares)
+library(DMwR)
+library(gridExtra)
+library(rattle)
+library(RColorBrewer)
+library(stats)
+library(Hmisc)
+library(isotree)
+library(mlbench)
+library(MLmetrics)
+library(DDoutlier)
+
+##################################
+# Loading source and
+# formulating the train set
+##################################
+data(Satellite)
+Satellite <- as.data.frame(Satellite)
+
+Satellite_Reference <- Satellite
+
+##################################
+# Creating outlier labels
+##################################
+Satellite_Outlier_Label <- Satellite$classes %in% c("damp grey soil",
+                                                    "cotton crop", 
+                                                    "vegetation stubble")
+
+##################################
+# Formulating an unlabeled dataset
+##################################
+Satellite <- Satellite[, names(Satellite)[names(Satellite) != "classes"]]
+Satellite$Status <- ifelse(Satellite_Outlier_Label==TRUE,
+                            "Outlier",
+                            "Valid")
+Satellite$Status <- as.factor(Satellite$Status)
+
+##################################
+# Performing a general exploration of the data set
+##################################
+dim(Satellite)
+str(Satellite)
+summary(Satellite)
+describe(Satellite)
+
+##################################
+# Formulating a data type assessment summary
+##################################
+PDA <- Satellite
+(PDA.Summary <- data.frame(
+  Column.Index=c(1:length(names(PDA))),
+  Column.Name= names(PDA), 
+  Column.Type=sapply(PDA, function(x) class(x)), 
+  row.names=NULL)
+)
+```
+##  1.2 Data Quality Assessment
+|
+| Data quality assessment:
+|
+| **[A]** No missing observations noted for any variable.
+|
+| **[B]** No low variance observed for any variable with First.Second.Mode.Ratio>5.
+|
+| **[C]** No low variance observed for any variable with Unique.Count.Ratio<0.01.
+|
+| **[D]** No high skewness observed for any variable with Skewness>3 or Skewness<(-3).
+|
+```{r section_1.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DQA <- Satellite
+DQA.Descriptors <- DQA[, names(DQA)[names(DQA) != "Status"]]
+
+##################################
+# Formulating an overall data quality assessment summary
+##################################
+(DQA.Summary <- data.frame(
+  Column.Index=c(1:length(names(DQA))),
+  Column.Name= names(DQA),
+  Column.Type=sapply(DQA, function(x) class(x)),
+  Row.Count=sapply(DQA, function(x) nrow(DQA)),
+  NA.Count=sapply(DQA,function(x)sum(is.na(x))),
+  Fill.Rate=sapply(DQA,function(x)format(round((sum(!is.na(x))/nrow(DQA)),3),nsmall=3)),
+  row.names=NULL)
+)
+
+##################################
+# Listing all descriptors
+##################################
+DQA.Descriptors <- DQA
+
+##################################
+# Listing all numeric Descriptors
+##################################
+DQA.Descriptors.Numeric <- DQA.Descriptors[,sapply(DQA.Descriptors, is.numeric)]
+
+if (length(names(DQA.Descriptors.Numeric))>0) {
+    print(paste0("There are ",
+               (length(names(DQA.Descriptors.Numeric))),
+               " numeric descriptor variable(s)."))
+} else {
+  print("There are no numeric descriptor variables.")
+}
+
+##################################
+# Listing all factor Descriptors
+##################################
+DQA.Descriptors.Factor <- DQA.Descriptors[,sapply(DQA.Descriptors, is.factor)]
+
+if (length(names(DQA.Descriptors.Factor))>0) {
+    print(paste0("There are ",
+               (length(names(DQA.Descriptors.Factor))),
+               " factor descriptor variable(s)."))
+} else {
+  print("There are no factor descriptor variables.")
+}
+
+##################################
+# Formulating a data quality assessment summary for factor Descriptors
+##################################
+if (length(names(DQA.Descriptors.Factor))>0) {
+
+  ##################################
+  # Formulating a function to determine the first mode
+  ##################################
+  FirstModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    ux[tab == max(tab)]
+  }
+
+  ##################################
+  # Formulating a function to determine the second mode
+  ##################################
+  SecondModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    fm = ux[tab == max(tab)]
+    sm = x[!(x %in% fm)]
+    usm <- unique(sm)
+    tabsm <- tabulate(match(sm, usm))
+    ifelse(is.na(usm[tabsm == max(tabsm)])==TRUE,
+           return("x"),
+           return(usm[tabsm == max(tabsm)]))
+  }
+
+  (DQA.Descriptors.Factor.Summary <- data.frame(
+  Column.Name= names(DQA.Descriptors.Factor),
+  Column.Type=sapply(DQA.Descriptors.Factor, function(x) class(x)),
+  Unique.Count=sapply(DQA.Descriptors.Factor, function(x) length(unique(x))),
+  First.Mode.Value=sapply(DQA.Descriptors.Factor, function(x) as.character(FirstModes(x)[1])),
+  Second.Mode.Value=sapply(DQA.Descriptors.Factor, function(x) as.character(SecondModes(x)[1])),
+  First.Mode.Count=sapply(DQA.Descriptors.Factor, function(x) sum(na.omit(x) == FirstModes(x)[1])),
+  Second.Mode.Count=sapply(DQA.Descriptors.Factor, function(x) sum(na.omit(x) == SecondModes(x)[1])),
+  Unique.Count.Ratio=sapply(DQA.Descriptors.Factor, function(x) format(round((length(unique(x))/nrow(DQA.Descriptors.Factor)),3), nsmall=3)),
+  First.Second.Mode.Ratio=sapply(DQA.Descriptors.Factor, function(x) format(round((sum(na.omit(x) == FirstModes(x)[1])/sum(na.omit(x) == SecondModes(x)[1])),3), nsmall=3)),
+  row.names=NULL)
+  )
+
+}
+
+##################################
+# Formulating a data quality assessment summary for numeric Descriptors
+##################################
+if (length(names(DQA.Descriptors.Numeric))>0) {
+
+  ##################################
+  # Formulating a function to determine the first mode
+  ##################################
+  FirstModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    ux[tab == max(tab)]
+  }
+
+  ##################################
+  # Formulating a function to determine the second mode
+  ##################################
+  SecondModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    fm = ux[tab == max(tab)]
+    sm = na.omit(x)[!(na.omit(x) %in% fm)]
+    usm <- unique(sm)
+    tabsm <- tabulate(match(sm, usm))
+    ifelse(is.na(usm[tabsm == max(tabsm)])==TRUE,
+           return(0.00001),
+           return(usm[tabsm == max(tabsm)]))
+  }
+
+  (DQA.Descriptors.Numeric.Summary <- data.frame(
+  Column.Name= names(DQA.Descriptors.Numeric),
+  Column.Type=sapply(DQA.Descriptors.Numeric, function(x) class(x)),
+  Unique.Count=sapply(DQA.Descriptors.Numeric, function(x) length(unique(x))),
+  Unique.Count.Ratio=sapply(DQA.Descriptors.Numeric, function(x) format(round((length(unique(x))/nrow(DQA.Descriptors.Numeric)),3), nsmall=3)),
+  First.Mode.Value=sapply(DQA.Descriptors.Numeric, function(x) format(round((FirstModes(x)[1]),3),nsmall=3)),
+  Second.Mode.Value=sapply(DQA.Descriptors.Numeric, function(x) format(round((SecondModes(x)[1]),3),nsmall=3)),
+  First.Mode.Count=sapply(DQA.Descriptors.Numeric, function(x) sum(na.omit(x) == FirstModes(x)[1])),
+  Second.Mode.Count=sapply(DQA.Descriptors.Numeric, function(x) sum(na.omit(x) == SecondModes(x)[1])),
+  First.Second.Mode.Ratio=sapply(DQA.Descriptors.Numeric, function(x) format(round((sum(na.omit(x) == FirstModes(x)[1])/sum(na.omit(x) == SecondModes(x)[1])),3), nsmall=3)),
+  Minimum=sapply(DQA.Descriptors.Numeric, function(x) format(round(min(x,na.rm = TRUE),3), nsmall=3)),
+  Mean=sapply(DQA.Descriptors.Numeric, function(x) format(round(mean(x,na.rm = TRUE),3), nsmall=3)),
+  Median=sapply(DQA.Descriptors.Numeric, function(x) format(round(median(x,na.rm = TRUE),3), nsmall=3)),
+  Maximum=sapply(DQA.Descriptors.Numeric, function(x) format(round(max(x,na.rm = TRUE),3), nsmall=3)),
+  Skewness=sapply(DQA.Descriptors.Numeric, function(x) format(round(skewness(x,na.rm = TRUE),3), nsmall=3)),
+  Kurtosis=sapply(DQA.Descriptors.Numeric, function(x) format(round(kurtosis(x,na.rm = TRUE),3), nsmall=3)),
+  Percentile25th=sapply(DQA.Descriptors.Numeric, function(x) format(round(quantile(x,probs=0.25,na.rm = TRUE),3), nsmall=3)),
+  Percentile75th=sapply(DQA.Descriptors.Numeric, function(x) format(round(quantile(x,probs=0.75,na.rm = TRUE),3), nsmall=3)),
+  row.names=NULL)
+  )
+
+}
+
+##################################
+# Identifying potential data quality issues
+##################################
+
+##################################
+# Checking for missing observations
+##################################
+if ((nrow(DQA.Summary[DQA.Summary$NA.Count>0,]))>0){
+  print(paste0("Missing observations noted for ",
+               (nrow(DQA.Summary[DQA.Summary$NA.Count>0,])),
+               " variable(s) with NA.Count>0 and Fill.Rate<1.0."))
+  DQA.Summary[DQA.Summary$NA.Count>0,]
+} else {
+  print("No missing observations noted.")
+}
+
+##################################
+# Checking for zero or near-zero variance Descriptors
+##################################
+if (length(names(DQA.Descriptors.Factor))==0) {
+  print("No factor descriptors noted.")
+} else if (nrow(DQA.Descriptors.Factor.Summary[as.numeric(as.character(DQA.Descriptors.Factor.Summary$First.Second.Mode.Ratio))>5,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Descriptors.Factor.Summary[as.numeric(as.character(DQA.Descriptors.Factor.Summary$First.Second.Mode.Ratio))>5,])),
+               " factor variable(s) with First.Second.Mode.Ratio>5."))
+  DQA.Descriptors.Factor.Summary[as.numeric(as.character(DQA.Descriptors.Factor.Summary$First.Second.Mode.Ratio))>5,]
+} else {
+  print("No low variance factor descriptors due to high first-second mode ratio noted.")
+}
+
+if (length(names(DQA.Descriptors.Numeric))==0) {
+  print("No numeric descriptors noted.")
+} else if (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$First.Second.Mode.Ratio))>5,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$First.Second.Mode.Ratio))>5,])),
+               " numeric variable(s) with First.Second.Mode.Ratio>5."))
+  DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$First.Second.Mode.Ratio))>5,]
+} else {
+  print("No low variance numeric descriptors due to high first-second mode ratio noted.")
+}
+
+if (length(names(DQA.Descriptors.Numeric))==0) {
+  print("No numeric descriptors noted.")
+} else if (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Unique.Count.Ratio))<0.01,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Unique.Count.Ratio))<0.01,])),
+               " numeric variable(s) with Unique.Count.Ratio<0.01."))
+  DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Unique.Count.Ratio))<0.01,]
+} else {
+  print("No low variance numeric descriptors due to low unique count ratio noted.")
+}
+
+##################################
+# Checking for skewed Descriptors
+##################################
+if (length(names(DQA.Descriptors.Numeric))==0) {
+  print("No numeric descriptors noted.")
+} else if (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))>3 |
+                                               as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))<(-3),])>0){
+  print(paste0("High skewness observed for ",
+  (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))>3 |
+                                               as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))<(-3),])),
+  " numeric variable(s) with Skewness>3 or Skewness<(-3)."))
+  DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))>3 |
+                                 as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))<(-3),]
+} else {
+  print("No skewed numeric descriptors noted.")
+}
+
+```
+
+##  1.3 Data Preprocessing
+
+###  1.3.1 Centering and Scaling
+|
+| Centering and Scaling data assessment:
+|
+| **[A]** To maintain an objective comparison across the different descriptors, centering and scaling transformation was applied on the numeric variables. The <span style="color: #0000FF">center</span> method from the <mark style="background-color: #CCECFF">**caret**</mark> package was implemented which subtracts the average value of a numeric variable to all the values. As a result of centering, the variables had zero mean values. In addition, the <span style="color: #0000FF">scale</span> method, also from the <mark style="background-color: #CCECFF">**caret**</mark> package, was applied which performs a center transformation with each value of the variable divided by its standard deviation. Scaling the data coerced the values to have a common standard deviation of one.
+|
+```{r section_1.3.1, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DPA <- Satellite
+
+##################################
+# Listing all descriptors
+##################################
+DPA.Descriptors <- DPA[, names(DPA)[names(DPA) != "Status"]]
+
+##################################
+# Listing all numeric descriptors
+##################################
+DPA.Descriptors.Numeric <- DPA.Descriptors[,sapply(DPA.Descriptors, is.numeric)]
+
+##################################
+# Applying a center and scale data transformation
+##################################
+DPA.Descriptors.Numeric_CenteredScaled <- preProcess(DPA.Descriptors.Numeric, 
+                                                     method = c("center","scale"))
+DPA.Descriptors.Numeric_CenteredScaledTransformed <- predict(DPA.Descriptors.Numeric_CenteredScaled, DPA.Descriptors.Numeric)
+row.names(DPA.Descriptors.Numeric_CenteredScaledTransformed) <- NULL
+
+```
+
+###  1.3.2 Dimensionality Reduction
+|
+| Data transformation assessment:
+|
+| **[A]** Considering the high dimensional nature of the dataset, Principal Component Analysis (PCA) was applied to summarize the information content from the 36 descriptors by means of a smaller set of summary indices composed of the first two principal components, enabling a more efficient visualization and analysis.
+|
+```{r section_1.3.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+Status <- Satellite$Status
+Satellite_Transformed <- cbind(DPA.Descriptors.Numeric_CenteredScaledTransformed,
+                               Satellite$Status)
+
+DR <- as.data.frame(Satellite_Transformed)
+
+DR.Numeric <- DR[,sapply(DR, is.numeric)]
+
+##################################
+# Performing PCA
+##################################
+DR_PCA <- prcomp(DR.Numeric)
+
+##################################
+# Consolidating the PCA components
+##################################
+rownames(DR_PCA$x) <- NULL
+DR_PCA$x <- as.data.frame(DR_PCA$x)
+(DR_PCA_FULL <- cbind(DR_PCA$x, Status))
+
+##################################
+# Creating a data subset only containing
+# the first two principal components
+##################################
+(DR_PCA_SUBSET <- DR_PCA_FULL[,c("Status",
+                                "PC1",
+                                "PC2",
+                                "PC3",
+                                "PC4",
+                                "PC5",
+                                "PC6",
+                                "PC7",
+                                "PC8",
+                                "PC9",
+                                "PC10")])
+
+```
+
+###  1.3.3 Pre-Processed Dataset
+|
+| Preliminary dataset assessment:
+|
+| **[A]** 6435 rows (observations)
+| 
+| **[B]** 4 columns (variables)
+|      **[B.1]** 1/4 label = <span style="color: #FF0000">labs</span> variable (factor)
+|             **[B.1.1]** Category 1 = <span style="color: #FF0000">Status=Outlier</span> 
+|             **[B.1.2]** Category 2 = <span style="color: #FF0000">Status=Valid</span> 
+|      **[B.2]** 3/4 descriptors = 3/3 numeric
+|             **[B.2.1]** <span style="color: #FF0000">PC1</span> variable
+|             **[B.2.2]** <span style="color: #FF0000">PC2</span> variable 
+| 
+| **[C]** Pre-processing actions applied:
+|      **[C.1]** Centering and scaling applied to improve data quality
+|      **[C.2]** PCA transformation to reduce the number of features into a workable subset
+| 
+```{r section_1.3.3, warning=FALSE, message=FALSE}
+##################################
+# Gathering deascriptive statistics
+##################################
+(DR_PCA_SUBSET_Skimmed <- skim(as.data.frame(DR_PCA_SUBSET)))
+
+```
+
+## 1.4 Data Exploration
+|
+| Exploratory data analysis:
+|
+| **[A]** From a univariate sense, principal component descriptors demonstrated various relationship patterns across the different levels of the <span style="color: #FF0000">Status</span> variable.
+|             **[A.1.1]** <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span> cases are differentially expressed in terms of the <span style="color: #FF0000">PC1</span>, <span style="color: #FF0000">PC2</span> and <span style="color: #FF0000">PC3</span> variables.
+|             **[A.1.2]** <span style="color: #FF0000">Status=Outlier</span> showed a wider range as compared to the <span style="color: #FF0000">Status=Outlier</span> cases are in terms of the <span style="color: #FF0000">PC5</span>, <span style="color: #FF0000">PC7</span> and <span style="color: #FF0000">PC9</span> variables.
+|
+| **[B]** From a multivariate sense, pairwise analysis between the principal component descriptors demonstrated the following observations between the <span style="color: #FF0000">Status</span> variable levels.
+|             **[B.1.1]** Overlapping orthogonal clustering patterns observed between the <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span> cases with the pairwise comparison across the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> variables.
+|             **[B.1.2]** Overlapping concentric clustering patterns observed between the <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span> cases with the pairwise comparison across the <span style="color: #FF0000">PC5</span>, <span style="color: #FF0000">PC7</span> and <span style="color: #FF0000">PC9</span> variables.
+|
+| **[C]** To better visualize outlier scores through a heatmap, the subsequent analysis will be conducted using the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> variables.
+|
+```{r section_1.4, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+EDA <- as.data.frame(DR_PCA_SUBSET)
+
+EDA$Algorithm <- rep("PCA-BASE",nrow(EDA))
+
+##################################
+# Creating a function to define the
+# range of descriptors for plotting
+##################################
+
+featurePlotRange <- function(start,end){
+
+  ##################################
+  # Listing all Descriptors
+  ##################################
+  EDA.Descriptors <- EDA[,start:end]
+  EDA.Descriptors.Numeric <- EDA.Descriptors[,sapply(EDA.Descriptors, is.numeric)]
+
+  ##################################
+  # Formulating the box plots
+  ##################################
+  featurePlotResult <- featurePlot(x = EDA.Descriptors.Numeric,
+            y = EDA$Status,
+            plot = "box",
+            scales = list(x = list(relation="free", rot = 90),
+                          y = list(relation="free")),
+            adjust = 1.5,
+            pch = "|",
+            layout = c(2,ncol(EDA.Descriptors.Numeric)/2))
+
+  return(featurePlotResult)
+
+}
+
+##################################
+# Creating univariate plots
+# for the principal components
+# grouped by status
+##################################
+featurePlotRange(1,11)
+
+##################################
+# Creating multivariate plots
+# for the principal components
+# grouped by status
+##################################
+splom(~EDA[,sapply(EDA, is.numeric)],
+      groups = EDA$Status,
+      pch = 16,
+      cex = 1,
+      alpha = 0.45,
+      auto.key = list(points = TRUE, space = "top"),
+      main = "Pairwise Scatterplots of Principal Component Descriptors",
+      xlab = "PCA" )
+
+DR_PCA_SUBSET <- DR_PCA_FULL[,c("Status",
+                                "PC1",
+                                "PC2")]
+
+describe(DR_PCA_SUBSET)
+
+EDA <- as.data.frame(DR_PCA_SUBSET)
+
+EDA$Algorithm <- rep("PCA-BASE",nrow(EDA))
+
+##################################
+# Creating multivariate plots
+# for the principal components
+# grouped by status
+##################################
+splom(~EDA[,sapply(EDA, is.numeric)],
+      groups = EDA$Status,
+      pch = 16,
+      cex = 2,
+      alpha = 0.45,
+      auto.key = list(points = TRUE, space = "top"),
+      main = "Pairwise Scatterplots of Principal Component Descriptors",
+      xlab = "PCA" )
+
+```
+
+## 1.5 Density and Distance-Based Anomaly Detection
+
+###  1.5.1. Connectivity-Based Outlier Factor (COF)
+|
+| **[A]** The Connectivity-Based Outlier Factor algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">ndims</span> = The number of k-nearest neighbors to construct a set-based nearest-path with and the number of neighbors for each observation to compare chaining-distance with, held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to sufficiently discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed deviance score densities.
+|      **[C.1]** ROC Curve AUC = 0.55987
+|
+```{r section_1.5.1, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the COF Algorithm
+##################################
+OD_COF <- COF(OD, k = 100)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_COF_PredictedScores <- OD_COF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_COF_PredictedScores)
+min(OD_COF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_COF_Summary <- DR_PCA_SUBSET
+OD_COF_Summary$Scores <- OD_COF_PredictedScores
+OD_COF_Summary$Label <- rep("COF", nrow(OD_COF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+ggplot(OD_COF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA55", high="#AA000055") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Connectivity-Based Outlier Factor (COF)")
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_COF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_COF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the IF Algorithm
+##################################
+Status <- ifelse(OD_COF_Summary$Status=="Valid",0,1)
+
+(OD_COF_ROCCurveAUC <- AUC(OD_COF_PredictedScores, Status))
+
+```
+
+###  1.5.2. Distance-Based Outlier Detection (DB)
+
+```{r section_1.5.2, warning=FALSE, message=FALSE}
+
+```
+
+###  1.5.3. Influenced Outlierness (INFLO)
+
+###  1.5.4. Kernel-Density Estimation Outlier Score (KDEOS)
+
+###  1.5.5. Aggregated K-Nearest Neighbors Distance (KNN-AGG)
+
+###  1.5.6. In-Degree for Observations in a K-Nearest Neighbors Graph (KNN-IN)
+
+###  1.5.7. Sum of Distance to K-Nearest Neighbors (KNN-SUM)
+
+###  1.5.8. Local Density Factor (LDF)
+
+###  1.5.9. Local Distance-Based Outlier Factor (LDOF)
+
+###  1.5.10. Local Correlation Integral (LOCI)
+
+###  1.5.11. Local Outlier Factor (LOF)
+
+###  1.5.12. Local Outlier Probability (LOOP)
+
+###  1.5.13. Natural Neighbor (NAN)
+
+###  1.5.14. Natural Outlier Factor (NOF)
+
+###  1.5.15. Relative Density-Based Outlier Factor (RDOS)
+
+###  1.5.16. Robust Kernel-Based Outlier Factor (RKOF)
+
+##  1.6 Algorithm Comparison Summary
+|
+| Algorithm performance comparison:
+|
+| **[A]** The density and distance-based anomaly detection algorithms applied to the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors which were able to sufficiently capture the outlier points based on the higher estimated ROC curve AUC are the following :
+|      **[A.1]** XXX : XXX (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
+|             **[A.1.1]** ROC Curve AUC = 0.XXXXX
+|      **[A.2]** XXX : XXX (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
+|             **[A.2.1]** ROC Curve AUC = 0.XXXXX
+|
+```{r section_1.6, warning=FALSE, message=FALSE}
+
+# ##################################
+# # Replotting the density plots
+# ##################################
+# OD_Summary <- rbind(OD_IF_Summary,
+#                     OD_EIF_Summary,
+#                     OD_SCIFOREST_Summary,
+#                     OD_FCF_Summary,
+#                     OD_DIF_Summary,
+#                     OD_BIF_Summary)
+# 
+# ##################################
+# # Replotting the heatmaps
+# ##################################
+# par(mfrow=c(3,2),
+#     mar = c(2.5,2.2,2,2.5))
+# 
+# Plot_Space_Range(OD_IF_DevianceScores,
+#                  "Outlier Scores : Isolation Forest (IF)",
+#                  1.0)
+# 
+# Plot_Space_Range(OD_EIF_DevianceScores,
+#                  "Outlier Scores : Extended Isolation Forest (EIF)",
+#                  1.0)
+# 
+# Plot_Space_Range(OD_SCIFOREST_DevianceScores,
+#                  "Outlier Scores : Isolation Forest with Split Selection Criterion (SCIFOREST)",
+#                  1.0)
+# 
+# Plot_Space_Range(OD_FCF_DevianceScores,
+#                  "Outlier Scores : Fair-Cut Forest (FCF)",
+#                  1.0)
+# 
+# Plot_Space_Range(OD_DIF_DevianceScores,
+#                  "Outlier Scores : Density Isolation Forest (DIF)",
+#                  1.0)
+# 
+# Plot_Space_Range(OD_BIF_DevianceScores,
+#                  "Outlier Scores : Boxed Isolation Forest (BIF)",
+#                  1.0)
+# 
+# ##################################
+# # Consolidating all evaluation results
+# # using the apparent ROC Curve AUC metric
+# ##################################
+# OutlierDetectionAlgorithm <- c('IF','EIF','SCIFOREST',
+#                                'FCF','DIF','BIF')
+# 
+# Set <- c(rep('ROC Curve AUC',6))
+# 
+# OutlierDetectionMetrics <- c(OD_IF_ROCCurveAUC,
+#                              OD_EIF_ROCCurveAUC,
+#                              OD_SCIFOREST_ROCCurveAUC,
+#                              OD_FCF_ROCCurveAUC,
+#                              OD_DIF_ROCCurveAUC,
+#                              OD_BIF_ROCCurveAUC)
+# 
+# OutlierDetectionPeformance_Summary <- as.data.frame(cbind(OutlierDetectionAlgorithm,
+#                                                     Set,
+#                                                     OutlierDetectionMetrics))
+# 
+# OutlierDetectionPeformance_Summary$OutlierDetectionMetrics <- as.numeric(as.character(OutlierDetectionPeformance_Summary$OutlierDetectionMetrics))
+# OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm <- factor(OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm,
+#                                                       levels = c('IF',
+#                                                                  'EIF',
+#                                                                  'SCIFOREST',
+#                                                                  'FCF',
+#                                                                  'DIF',
+#                                                                  'BIF'))
+# 
+# print(OutlierDetectionPeformance_Summary, row.names=FALSE)
+# 
+# (OutlierDetectionPeformance_Summary_Plot <- dotplot(OutlierDetectionAlgorithm ~ OutlierDetectionMetrics,
+#                           data = OutlierDetectionPeformance_Summary,
+#                           groups = Set,
+#                           main = "Anomaly Detection Algorithm Performance Comparison",
+#                           ylab = "Algorithm",
+#                           xlab = "Anomaly Detection Performance Metrics",
+#                           auto.key = list(adj = 1),
+#                           type=c("p", "h"),
+#                           origin = 0,
+#                           alpha = 0.45,
+#                           pch = 16,
+#                           cex = 2))
+
+```
+
+##  1.7 References
+|
+| **[Book]** [Applied Predictive Modeling](http://appliedpredictivemodeling.com/) by Max Kuhn and Kjell Johnson
+| **[Book]** [An Introduction to Statistical Learning](https://www.statlearning.com/) by Gareth James, Daniela Witten, Trevor Hastie and Rob Tibshirani
+| **[Book]** [Multivariate Data Visualization with R](http://lmdvr.r-forge.r-project.org/figures/figures.html) by Deepayan Sarkar
+| **[Book]** [Machine Learning](https://bookdown.org/ssjackson300/Machine-Learning-Lecture-Notes/) by Samuel Jackson
+| **[Book]** [Data Modeling Methods](https://bookdown.org/larget_jacob/data-modeling-methods/) by Jacob Larget
+| **[Book]** [Introduction to R and Statistics](https://saestatsteaching.tech/) by University of Western Australia
+| **[Book]** [Feature Engineering and Selection: A Practical Approach for Predictive Models](http://www.feat.engineering/index.html) by Max Kuhn and Kjell Johnson
+| **[Book]** [Introduction to Research Methods](https://bookdown.org/ejvanholm/Textbook/) by Eric van Holm
+| **[R Package]** [AppliedPredictiveModeling](https://cran.r-project.org/web//packages/AppliedPredictiveModeling/AppliedPredictiveModeling.pdf) by Max Kuhn
+| **[R Package]** [caret](https://topepo.github.io/caret/index.html) by Max Kuhn
+| **[R Package]** [rpart](https://mran.microsoft.com/web/packages/rpart/rpart.pdf) by Terry Therneau and Beth Atkinson
+| **[R Package]** [lattice](https://cran.r-project.org/web/packages/lattice/lattice.pdf) by  Deepayan Sarkar
+| **[R Package]** [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html/) by Hadley Wickham
+| **[R Package]** [moments](https://cran.r-project.org/web/packages/moments/index.html) by Lukasz Komsta and Frederick
+| **[R Package]** [skimr](https://cran.r-project.org/web/packages/skimr/skimr.pdf) by  Elin Waring
+| **[R Package]** [RANN](https://cran.r-project.org/web/packages/RANN/RANN.pdf) by  Sunil Arya, David Mount, Samuel Kemp and Gregory Jefferis
+| **[R Package]** [corrplot](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf) by Taiyun Wei
+| **[R Package]** [tidyverse](https://cran.r-project.org/web/packages/tidyverse/tidyverse.pdf) by Hadley Wickham
+| **[R Package]** [lares](https://cran.rstudio.com/web/packages/lares/lares.pdf) by Bernardo Lares
+| **[R Package]** [DMwR](https://mran.microsoft.com/snapshot/2016-05-02/web/packages/DMwR/DMwR.pdf) by Luis Torgo
+| **[R Package]** [gridExtra](https://cran.r-project.org/web/packages/gridExtra/gridExtra.pdf) by Baptiste Auguie and Anton Antonov
+| **[R Package]** [rattle](https://cran.r-project.org/web/packages/rattle/rattle.pdf) by Graham Williams
+| **[R Package]** [RColorBrewer](https://cran.r-project.org/web//packages/RColorBrewer/RColorBrewer.pdf) by Erich Neuwirth
+| **[R Package]** [stats](https://search.r-project.org/R/refmans/stats/html/00Index.html) by R Core Team
+| **[R Package]** [Hmisc](https://cran.r-project.org/web/packages/Hmisc/Hmisc.pdf) by Frank Harrell
+| **[R Package]** [isotree](https://cran.r-project.org/web/packages/isotree/isotree.pdf) by David Cortes
+| **[R Package]** [mlbench](https://cran.r-project.org/web/packages/mlbench/mlbench.pdf) by Friedrich Leisch and Evgenia Dimitriadou
+| **[R Package]** [MLmetrics](https://cran.r-project.org/web/packages/MLmetrics/MLmetrics.pdf) by Yachen Yan
+| **[Article]** [An Introduction to Isolation Forests](https://cran.r-project.org/web/packages/isotree/vignettes/An_Introduction_to_Isolation_Forests.html) by David Cortes
+| **[Article]** [Isolation Forest: The Art of Cutting Off From the World](https://quantdare.com/isolation-forest-algorithm/) by QuantDare Team
+| **[Article]** [Anomaly Detection with Isolation Forest and Kernel Density Estimation](https://machinelearningmastery.com/anomaly-detection-with-isolation-forest-and-kernel-density-estimation/) by Muhammad Asad Iqbal Khan
+| **[Article]** [Isolation Forest Algorithm for Anomaly Detection](https://arpitbhayani.me/blogs/isolation-forest) by Arpit Bhayani
+| **[Article]** [Isolation Forest Example](https://scikit-learn.org/stable/auto_examples/ensemble/plot_isolation_forest.html) by Scikit-Learn Team
+| **[Article]** [Isolation Forest for Anomaly Detection ](https://www.mathworks.com/help/stats/isolationforest.html) by Mathworks Team
+| **[Article]** [Machine Learning Interpretability For Isolation Forest Using SHAP](https://www.data4v.com/machine-learning-interpretability-for-isolation-forest-using-shap/) by Prasad Kulkarni
+| **[Article]** [What is Isolation Forest?](https://dsworld.org/what-is-an-isolation-forest/) by Data Science World Team
+| **[Article]** [Anomaly Detection: Isolation Forest Agorithm](https://majdarbash.github.io/aws-cmls/2019-11-21-isolation-forest-algorithm/) by Maj Darbash
+| **[Article]** [Metrics, Techniques and Tools of Anomaly Detection: A Survey](https://www.cse.wustl.edu/~jain/cse567-17/ftp/mttad/index.html) by Xuanfan Wu
+| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
+| **[Publication]** [Isolation-Based Anomaly Detection](https://dl.acm.org/doi/10.1145/2133360.2133363) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (ACM Transactions on Knowledge Discovery from Data)
+| **[Publication]** [On Detecting Clustered Anomalies using SCiForest](https://link.springer.com/chapter/10.1007/978-3-642-15883-4_18) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (Joint European Conference on Machine Learning and Knowledge Discovery in Databases)
+| **[Course]** [Applied Data Mining and Statistical Learning](https://online.stat.psu.edu/stat508/) by Penn State Eberly College of Science
+|
+|
+|
+|
