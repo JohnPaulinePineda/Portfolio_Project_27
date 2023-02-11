@@ -566,7 +566,7 @@ OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
 ##################################
 # Implementing the COF Algorithm
 ##################################
-OD_COF <- COF(OD, k=100)
+OD_COF <- COF(OD, k=200)
 
 ##################################
 # Determining the outlier scores
