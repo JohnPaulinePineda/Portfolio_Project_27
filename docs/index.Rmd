@@ -628,8 +628,87 @@ Status <- ifelse(OD_COF_Summary$Status=="Valid",0,1)
 ```
 
 ###  1.5.2. Distance-Based Outlier Detection (DB)
-
+|
+| **[A]** The DB algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 2 hyperparameterS:
+|      **[B.1]** <span style="color: #FF0000">d</span> = radius of the neighborhood held constant at a value of 1.
+|      **[B.2]** <span style="color: #FF0000">fraction</span> = proportion of the number of observations to be within the neighborhood for observations to be classified as inliers, held constant at a value of 0.05.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.67308
+|
 ```{r section_1.5.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the DB Algorithm
+##################################
+OD_DB <- DB(OD, d=1, fraction=0.05)$classification
+
+##################################
+# Determining the outlier classes
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_DB_PredictedClass <- OD_DB
+
+##################################
+# Consolidating the outlier classes
+##################################
+OD_DB_Summary <- DR_PCA_SUBSET
+OD_DB_Summary$Class <- OD_DB_PredictedClass
+OD_DB_Summary$Status <- as.character(OD_DB_Summary$Status)
+OD_DB_Summary$Label <- rep("DB", nrow(OD_DB_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# by outlier classes
+##################################
+ggplot(OD_DB_Summary, aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Classes : Distance-Based Outlier Detection (DB)")
+
+##################################
+# Exploring the outlier classes
+# between the valid and outlier points
+##################################
+Class_Status_Data <- as.data.frame(cbind(OD_DB_Summary$Class,
+                                         OD_DB_Summary$Status))
+colnames(Class_Status_Data) <- c("Class","Status")
+Class_Status_Proportion <- as.data.frame(prop.table(table(Class_Status_Data), 2))
+Class_Status_Proportion$Label <- rep("DB", nrow(Class_Status_Proportion))
+Class_Status_Proportion
+
+barchart(Freq ~ Status | Label,
+         data = Class_Status_Proportion,
+         groups = Class,
+         stack = TRUE,
+         ylab = "Proportion",
+         main = "Outlier Classes : Local Correlation Integral (DB)",
+         xlab = "Status",
+         auto.key = list(adj = 1))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the DB Algorithm
+##################################
+Status <- ifelse(OD_DB_Summary$Status=="Valid",0,1)
+OD_DB_PredictedClassLevel <- ifelse(OD_DB_Summary$Class=="Inlier",0,1)
+
+(OD_DB_ROCCurveAUC <- AUC(OD_DB_PredictedClassLevel, Status))
 
 ```
 
@@ -638,7 +717,7 @@ Status <- ifelse(OD_COF_Summary$Status=="Valid",0,1)
 | **[A]** The INFLO algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
 | **[B]** The algorithm contains 1 hyperparameter:
-|      **[B.1]** <span style="color: #FF0000">k</span> = number of reverse k-nearest neighbors to compare density with, held constant at a value of 200.
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of reverse k-nearest neighbors to compare density with, held constant at a value of 500.
 |
 | **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.62623
@@ -1040,9 +1119,9 @@ Status <- ifelse(OD_KNN_SUM_Summary$Status=="Valid",0,1)
 | **[A]** The LDF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
 | **[B]** The algorithm contains 3 hyperparameters:
-|      **[B.1]** <span style="color: #FF0000">k</span> =  number of k-nearest neighbors to compare density estimation with, held constant at a value of 200.
-|      **[B.2]** <span style="color: #FF0000">h</span> =  bandwidth for kernel functions held constant at a value of 1.
-|      **[B.3]** <span style="color: #FF0000">c</span> =  scaling constant for comparison of average local density estimate for an observation and its neighboring observation, held constant at a value of 1.
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to compare density estimation with, held constant at a value of 200.
+|      **[B.2]** <span style="color: #FF0000">h</span> = bandwidth for kernel functions held constant at a value of 1.
+|      **[B.3]** <span style="color: #FF0000">c</span> = scaling constant for comparison of average local density estimate for an observation and its neighboring observation, held constant at a value of 1.
 |
 | **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.62528
@@ -1122,7 +1201,7 @@ Status <- ifelse(OD_LDF_Summary$Status=="Valid",0,1)
 | **[A]** The LDOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
 | **[B]** The algorithm contains 1 hyperparameter:
-|      **[B.1]** <span style="color: #FF0000">k</span> = The number of nearest neighbors to compare distances with, held constant at a value of 200.
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of nearest neighbors to compare distances with, held constant at a value of 200.
 |
 | **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.53336
@@ -1238,7 +1317,7 @@ OD_LOCI_Summary$Label <- rep("LOCI", nrow(OD_LOCI_Summary))
 ##################################
 # Plotting the scatterplot
 # for anomaly detection
-# adjusted to the outlier scores
+# by outlier classes
 ##################################
 ggplot(OD_LOCI_Summary, aes(x=PC1, y=PC2, color=Class)) +
   geom_point(size=3, alpha=0.10) +
@@ -1252,7 +1331,7 @@ ggplot(OD_LOCI_Summary, aes(x=PC1, y=PC2, color=Class)) +
   ggtitle("Outlier Classes : Local Correlation Integral (LOCI)")
 
 ##################################
-# Exploring the outlier scores
+# Exploring the outlier classes
 # between the valid and outlier points
 ##################################
 Class_Status_Data <- as.data.frame(cbind(OD_LOCI_Summary$Class,
@@ -1284,38 +1363,411 @@ OD_LOCI_PredictedClassLevel <- ifelse(OD_LOCI_Summary$Class=="Inlier",0,1)
 ```
 
 ###  1.5.11. Local Outlier Factor (LOF)
-
+|
+| **[A]** The LOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to compare density with, held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.62018
+|
 ```{r section_1.5.11, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the LOF Algorithm
+##################################
+OD_LOF <- LOF(OD, k=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LOF_PredictedScores <- OD_LOF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_LOF_PredictedScores)
+min(OD_LOF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_LOF_Summary <- DR_PCA_SUBSET
+OD_LOF_Summary$Scores <- OD_LOF_PredictedScores
+OD_LOF_Summary$Label <- rep("LOF", nrow(OD_LOF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+ggplot(OD_LOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Local Outlier Factor (LOF)")
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_LOF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_LOF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LOF Algorithm
+##################################
+Status <- ifelse(OD_LOF_Summary$Status=="Valid",0,1)
+
+(OD_LOF_ROCCurveAUC <- AUC(OD_LOF_PredictedScores, Status))
 
 ```
 
 ###  1.5.12. Local Outlier Probability (LOOP)
-
+|
+| **[A]** The LOOP algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 2 hyperparameterS:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to compare density with, held constant at a value of 5.
+|      **[B.2]** <span style="color: #FF0000">lambda</span> = multiplication factor for standard deviation, held constant at a value of 1.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.XXXX
+|
 ```{r section_1.5.12, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the LOOP Algorithm
+##################################
+OD_LOOP <- LOOP(OD, k=5, lambda=1)
+OD_LOOP <- ifelse(OD_LOOP==1,"Outlier","Inlier")
+
+##################################
+# Determining the outlier classes
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LOOP_PredictedClass <- OD_LOOP
+
+##################################
+# Consolidating the outlier classes
+##################################
+OD_LOOP_Summary <- DR_PCA_SUBSET
+OD_LOOP_Summary$Class <- OD_LOOP_PredictedClass
+OD_LOOP_Summary$Status <- as.character(OD_LOOP_Summary$Status)
+OD_LOOP_Summary$Label <- rep("LOOP", nrow(OD_LOOP_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# by outlier classes
+##################################
+ggplot(OD_LOOP_Summary, aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Classes : Local Outlier Probability (LOOP)")
+
+##################################
+# Exploring the outlier classes
+# between the valid and outlier points
+##################################
+Class_Status_Data <- as.data.frame(cbind(OD_LOOP_Summary$Class,
+                                         OD_LOOP_Summary$Status))
+colnames(Class_Status_Data) <- c("Class","Status")
+Class_Status_Proportion <- as.data.frame(prop.table(table(Class_Status_Data), 2))
+Class_Status_Proportion$Label <- rep("LOOP", nrow(Class_Status_Proportion))
+Class_Status_Proportion
+
+barchart(Freq ~ Status | Label,
+         data = Class_Status_Proportion,
+         groups = Class,
+         stack = TRUE,
+         ylab = "Proportion",
+         main = "Outlier Classes : Local Correlation Integral (LOOP)",
+         xlab = "Status",
+         auto.key = list(adj = 1))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LOOP Algorithm
+##################################
+Status <- ifelse(OD_LOOP_Summary$Status=="Valid",0,1)
+OD_LOOP_PredictedClassLevel <- ifelse(OD_LOOP_Summary$Class=="Inlier",0,1)
+
+(OD_LOOP_ROCCurveAUC <- AUC(OD_LOOP_PredictedClassLevel, Status))
 
 ```
 
-###  1.5.13. Natural Neighbor (NAN)
-
+###  1.5.13. Natural Outlier Factor (NOF)
+|
+| **[A]** The NOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm does not contain any hyperparameter:
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.54914
+|
 ```{r section_1.5.13, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the NOF Algorithm
+##################################
+OD_NOF <- NOF(OD)$NOF
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_NOF_PredictedScores <- OD_NOF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_NOF_PredictedScores)
+min(OD_NOF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_NOF_Summary <- DR_PCA_SUBSET
+OD_NOF_Summary$Scores <- OD_NOF_PredictedScores
+OD_NOF_Summary$Label <- rep("NOF", nrow(OD_NOF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+ggplot(OD_NOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Natural Outlier Factor (NOF)")
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_NOF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_NOF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the NOF Algorithm
+##################################
+Status <- ifelse(OD_NOF_Summary$Status=="Valid",0,1)
+
+(OD_NOF_ROCCurveAUC <- AUC(OD_NOF_PredictedScores, Status))
 
 ```
 
-###  1.5.14. Natural Outlier Factor (NOF)
-
+###  1.5.14. Relative Density-Based Outlier Factor (RDOS)
+|
+| **[A]** The RDOS algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 2 hyperparameters:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors used to identify reverse- and shared nearest neighbors, held constant at a value of 50.
+|      **[B.2]** <span style="color: #FF0000">h</span> = bandwidth parameter for gaussian kernel held constant at a value of 0.10.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.xxxx
+|
 ```{r section_1.5.14, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the RDOS Algorithm
+##################################
+OD_RDOS <- RDOS(OD, k=20, h=2)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_RDOS_PredictedScores <- OD_RDOS
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_RDOS_PredictedScores)
+min(OD_RDOS_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_RDOS_Summary <- DR_PCA_SUBSET
+OD_RDOS_Summary$Scores <- OD_RDOS_PredictedScores
+OD_RDOS_Summary$Label <- rep("RDOS", nrow(OD_RDOS_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+ggplot(OD_RDOS_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Relative Density-Based Outlier Factor (RDOS)")
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_RDOS_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_RDOS_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the RDOS Algorithm
+##################################
+Status <- ifelse(OD_RDOS_Summary$Status=="Valid",0,1)
+
+(OD_RDOS_ROCCurveAUC <- AUC(OD_RDOS_PredictedScores, Status))
 
 ```
 
-###  1.5.15. Relative Density-Based Outlier Factor (RDOS)
-
+###  1.5.15. Robust Kernel-Based Outlier Factor (RKOF)
+|
+| **[A]** The RKOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 4 hyperparameterS:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of nearest neighbors to compare density estimation with, held constant at a value of 50.
+|      **[B.2]** <span style="color: #FF0000">C</span> = mMultiplication parameter for k-distance of neighboring observations held constant at a value of 1.
+|      **[B.3]** <span style="color: #FF0000">alpha</span> = sensivity parameter for k-distance and bandwidth, held constant at a value of 1.
+|      **[B.4]** <span style="color: #FF0000">sigma2</span> = variance parameter for weighting of neighboring observations held constant at a value of 1.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.xxxx
+|
 ```{r section_1.5.15, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
 
-```
+##################################
+# Implementing the RKOF Algorithm
+##################################
+OD_RKOF <- RKOF(OD, k=50, C=1, alpha=1, sigma2=1)
 
-###  1.5.16. Robust Kernel-Based Outlier Factor (RKOF)
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_RKOF_PredictedScores <- OD_RKOF
 
-```{r section_1.5.16, warning=FALSE, message=FALSE}
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_RKOF_PredictedScores)
+min(OD_RKOF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_RKOF_Summary <- DR_PCA_SUBSET
+OD_RKOF_Summary$Scores <- OD_RKOF_PredictedScores
+OD_RKOF_Summary$Label <- rep("RKOF", nrow(OD_RKOF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+ggplot(OD_RKOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Robust Kernel-Based Outlier Factor (RKOF)")
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_RKOF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_RKOF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the RKOF Algorithm
+##################################
+Status <- ifelse(OD_RKOF_Summary$Status=="Valid",0,1)
+
+(OD_RKOF_ROCCurveAUC <- AUC(OD_RKOF_PredictedScores, Status))
 
 ```
 
