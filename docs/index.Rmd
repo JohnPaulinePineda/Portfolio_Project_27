@@ -57,11 +57,10 @@ library(rattle)
 library(RColorBrewer)
 library(stats)
 library(Hmisc)
-library(isotree)
+library(ggpubr)
 library(mlbench)
 library(MLmetrics)
 library(DDoutlier)
-library(ggpubr)
 
 ##################################
 # Loading source and
@@ -1786,31 +1785,30 @@ print(OutlierDetectionPeformance_Summary, row.names=FALSE)
 | **[R Package]** [RColorBrewer](https://cran.r-project.org/web//packages/RColorBrewer/RColorBrewer.pdf) by Erich Neuwirth
 | **[R Package]** [stats](https://search.r-project.org/R/refmans/stats/html/00Index.html) by R Core Team
 | **[R Package]** [Hmisc](https://cran.r-project.org/web/packages/Hmisc/Hmisc.pdf) by Frank Harrell
-| **[R Package]** [isotree](https://cran.r-project.org/web/packages/isotree/isotree.pdf) by David Cortes
+| **[R Package]** [ggpubr](https://cran.microsoft.com/snapshot/2022-04-13/web/packages/ggpubr/ggpubr.pdf) by 	Alboukadel Kassambara
 | **[R Package]** [mlbench](https://cran.r-project.org/web/packages/mlbench/mlbench.pdf) by Friedrich Leisch and Evgenia Dimitriadou
 | **[R Package]** [MLmetrics](https://cran.r-project.org/web/packages/MLmetrics/MLmetrics.pdf) by Yachen Yan
-
+| **[R Package]** [DDOutlier](https://cran.r-project.org/web/packages/DDoutlier/DDoutlier.pdf) by Jacob Madsen
+| **[Article]** [Outlier detection with Local Outlier Factor (LOF)](https://scikit-learn.org/stable/auto_examples/neighbors/plot_lof_outlier_detection.html) by Scikit-Learn Team
+| **[Article]** [4 Automatic Outlier Detection Algorithms in Python](https://machinelearningmastery.com/model-based-outlier-detection-and-removal-in-python/) by Jason Brownlee
+| **[Article]** [Outlier Detection with Several Methods](https://scikit-learn.org/0.18/auto_examples/covariance/plot_outlier_detection.html) by Scikit-Learn Team
+| **[Article]** [Comparing Anomaly Detection Algorithms for Outlier Detection on Toy Datasets](https://scikit-learn.org/stable/auto_examples/miscellaneous/plot_anomaly_comparison.html) by Scikit-Learn Team
+| **[Article]** [Novelty and Outlier Detection](http://jaquesgrobler.github.io/Online-Scikit-Learn-stat-tut/modules/outlier_detection.html) by Scikit-Learn Team
 | **[Article]** [Metrics, Techniques and Tools of Anomaly Detection: A Survey](https://www.cse.wustl.edu/~jain/cse567-17/ftp/mttad/index.html) by Xuanfan Wu
-
 | **[Publication]** [Fast Outlier Detection in High Dimensional Spaces](https://link.springer.com/chapter/10.1007/3-540-45681-3_2) by Fabrizio Angiulli and Clara Pizzuti (International Conference on Knowledge Discovery and Data Mining (SIGKDD))
 | **[Publication]** [LOF: Identifying Density-Based Local Outliers](https://dl.acm.org/doi/10.1145/335191.335388) by Markus Breunig, Hans-Peter Kriegel, Raymond Ng and Jorg Sander ( International Conference On Management of Data)
 | **[Publication]** [RKOF: Robust Kernel-Based Local Outlier Detection](https://link.springer.com/chapter/10.1007/978-3-642-20847-8_23) by Jun Gao, Weiming Hu, Zhongfei (Mark) Zhang, Xiaoqin Zhang and Ou Wu (Pacific-Asia Conference on Knowledge Discovery and Data Mining: Advances in Knowledge Discovery and Data Mining)
 | **[Publication]** [Outlier Detection Using K-Nearest Neighbour Graph](https://ieeexplore.ieee.org/document/1334558/authors#authors) by Ville Hautamaki, Ismo Karkkainen and Pasi Franti (International Conference on Pattern Recognition)
-
-
-
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-
-
+| **[Publication]** [A Non-Parameter Outlier Detection Algorithm Based on Natural Neighbor](https://www.sciencedirect.com/science/article/abs/pii/S0950705115004013?via%3Dihub) by Jinlong Huang, Qingsheng Zhu, Lijun Yang and Ji Feng (Knowledge-Based Systems)
+| **[Publication]** [Ranking Outliers Using Symmetric Neighborhood Relationship](https://link.springer.com/chapter/10.1007/11731139_68) by Wen Jin, Anthony K. H. Tung, Jiawei Han and Wei Wang (Pacific-Asia Conference on Knowledge Discovery and Data Mining (PAKDD))
+| **[Publication]** [A Unified Approach for Mining Outliers](https://dl.acm.org/doi/10.5555/782010.782021) by Edwin Knorr and Raymond Ng (Conference of the Centre for Advanced Studies on Collaborative Research (CASCON))
+| **[Publication]** [LOOP: Local Outlier Probabilities](https://dl.acm.org/doi/10.1145/1645953.1646195) by Hans-Peter Kriegel, Peer Kroger, Erich Schubert and Arthur Zimek (ACM Conference on Information and Knowledge Management)
+| **[Publication]** [Outlier Detection with Kernel Density Functions](https://link.springer.com/chapter/10.1007/978-3-540-73499-4_6) by Longin Jan Latecki, Aleksandar Lazarevic and Dragoljub Pokrajac (International Workshop on Machine Learning and Data Mining in Pattern Recognition: Machine Learning and Data Mining in Pattern Recognition)
+| **[Publication]** [LOCI: Fast Outlier Detection Using the Local Correlation Integral](https://ieeexplore.ieee.org/document/1260802) by Spiros Papadimitriou, Hiroyuki Kitagawa, Phillip B. Gibbons and Christos Faloutsos (International Conference on Data Engineering)
+| **[Publication]** [Generalized Outlier Detection with Flexible Kernel Density Estimates](https://epubs.siam.org/doi/10.1137/1.9781611973440.63) by Erich Schubert, Arthur Zimek, and Hans-Peter Kriegel (Proceedings of the 2014 SIAM International Conference on Data Mining)
+| **[Publication]** [Enhancing Effectiveness of Outlier Detections for Low Density Patterns](https://link.springer.com/chapter/10.1007/3-540-47887-6_53) byJian Tang, Zhixiang Chen, Ada Wai-chee Fu and David W. Cheung  (Pacific-Asia Conference on Knowledge Discovery and Data Mining (PAKDD))
+| **[Publication]** [A New Local Distance-Based Outlier Detection Approach for Scattered Real-World Data](https://link.springer.com/chapter/10.1007/978-3-642-01307-2_84) by Ke Zhang, Marcus Hutter and Huidong Jin (Pacific-Asia Conference on Knowledge Discovery and Data Mining (PAKDD))
+| **[Publication]** [Natural neighbor: A Self-Adaptive Neighborhood Method Without Parameter K](https://www.sciencedirect.com/science/article/abs/pii/S016786551630085X) by Qingsheng Zhu, Ji Feng and Jinlong Huang (Pattern Recognition Letters)
 | **[Course]** [Applied Data Mining and Statistical Learning](https://online.stat.psu.edu/stat508/) by Penn State Eberly College of Science
 |
 |
