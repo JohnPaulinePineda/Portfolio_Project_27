@@ -554,7 +554,7 @@ splom(~EDA[,sapply(EDA, is.numeric)],
 | **[B]** The algorithm contains 1 hyperparameter:
 |      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to construct a set-based nearest-path with and the number of neighbors for each observation to compare chaining-distance with, held constant at a value of 200.
 |
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed deviance score densities.
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.55987
 |
 ```{r section_1.5.1, warning=FALSE, message=FALSE}
@@ -640,7 +640,7 @@ Status <- ifelse(OD_COF_Summary$Status=="Valid",0,1)
 | **[B]** The algorithm contains 1 hyperparameter:
 |      **[B.1]** <span style="color: #FF0000">k</span> = number of reverse k-nearest neighbors to compare density with, held constant at a value of 200.
 |
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed deviance score densities.
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.62623
 |
 ```{r section_1.5.3, warning=FALSE, message=FALSE}
@@ -716,7 +716,7 @@ Status <- ifelse(OD_INFLO_Summary$Status=="Valid",0,1)
 |      **[B.1]** <span style="color: #FF0000">k_min</span> = k parameter starting the k-range held constant at a value of 100.
 |      **[B.1]** <span style="color: #FF0000">k_max</span> = k parameter ending the k-range held constant at a value of 200.
 |
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed deviance score densities.
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.56088
 |
 ```{r section_1.5.4, warning=FALSE, message=FALSE}
@@ -792,7 +792,7 @@ Status <- ifelse(OD_KDEOS_Summary$Status=="Valid",0,1)
 |      **[B.1]** <span style="color: #FF0000">k_min</span> = k parameter starting the k-range held constant at a value of 100.
 |      **[B.1]** <span style="color: #FF0000">k_max</span> = k parameter ending the k-range held constant at a value of 200.
 |
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to sufficiently discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed deviance score densities.
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to sufficiently discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.79965
 |
 ```{r section_1.5.5, warning=FALSE, message=FALSE}
@@ -867,7 +867,7 @@ Status <- ifelse(OD_KNN_AGG_Summary$Status=="Valid",0,1)
 | **[B]** The algorithm contains 1 hyperparameter:
 |      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to construct a graph with, held constant at a value of 200.
 |
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed deviance score densities.
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.61995
 |
 ```{r section_1.5.6, warning=FALSE, message=FALSE}
@@ -942,7 +942,7 @@ Status <- ifelse(OD_KNN_IN_Summary$Status=="Valid",0,1)
 | **[B]** The algorithm contains 1 hyperparameter:
 |      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors held constant at a value of 200.
 |
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed deviance score densities.
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to sufficiently discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.80504
 |
 ```{r section_1.5.7, warning=FALSE, message=FALSE}
@@ -1011,14 +1011,154 @@ Status <- ifelse(OD_KNN_SUM_Summary$Status=="Valid",0,1)
 ```
 
 ###  1.5.8. Local Density Factor (LDF)
-
+|
+| **[A]** The LDF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 3 hyperparameters:
+|      **[B.1]** <span style="color: #FF0000">k</span> =  number of k-nearest neighbors to compare density estimation with, held constant at a value of 200.
+|      **[B.2]** <span style="color: #FF0000">h</span> =  bandwidth for kernel functions held constant at a value of 1.
+|      **[B.3]** <span style="color: #FF0000">c</span> =  scaling constant for comparison of average local density estimate for an observation and its neighboring observation, held constant at a value of 1.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.62528
+|
 ```{r section_1.5.8, warning=FALSE, message=FALSE}
+##################################
+# Implementing the LDF Algorithm
+##################################
+OD_LDF <- LDF(OD, k=200, h=1, c=1)$LDF
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LDF_PredictedScores <- OD_LDF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_LDF_PredictedScores)
+min(OD_LDF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_LDF_Summary <- DR_PCA_SUBSET
+OD_LDF_Summary$Scores <- OD_LDF_PredictedScores
+OD_LDF_Summary$Label <- rep("LDF", nrow(OD_LDF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+ggplot(OD_LDF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Local Density Factor (LDF)")
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_LDF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_LDF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LDF Algorithm
+##################################
+Status <- ifelse(OD_LDF_Summary$Status=="Valid",0,1)
+
+(OD_LDF_ROCCurveAUC <- AUC(OD_LDF_PredictedScores, Status))
 
 ```
 
 ###  1.5.9. Local Distance-Based Outlier Factor (LDOF)
-
+|
+| **[A]** The LDOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = The number of nearest neighbors to compare distances with, held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.53336
+|
 ```{r section_1.5.9, warning=FALSE, message=FALSE}
+##################################
+# Implementing the LDOF Algorithm
+##################################
+OD_LDOF <- LDOF(OD, k=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LDOF_PredictedScores <- OD_LDOF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_LDOF_PredictedScores)
+min(OD_LDOF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_LDOF_Summary <- DR_PCA_SUBSET
+OD_LDOF_Summary$Scores <- OD_LDOF_PredictedScores
+OD_LDOF_Summary$Label <- rep("LDOF", nrow(OD_LDOF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+ggplot(OD_LDOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Local Distance-Based Outlier Factor (LDOF)")
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_LDOF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_LDOF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LDOF Algorithm
+##################################
+Status <- ifelse(OD_LDOF_Summary$Status=="Valid",0,1)
+
+(OD_LDOF_ROCCurveAUC <- AUC(OD_LDOF_PredictedScores, Status))
 
 ```
 
