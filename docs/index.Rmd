@@ -61,6 +61,7 @@ library(isotree)
 library(mlbench)
 library(MLmetrics)
 library(DDoutlier)
+library(ggpubr)
 
 ##################################
 # Loading source and
@@ -594,7 +595,8 @@ OD_COF_Summary$Label <- rep("COF", nrow(OD_COF_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_COF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_COF_Scatterplot <- ggplot(OD_COF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -603,7 +605,7 @@ ggplot(OD_COF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Connectivity-Based Outlier Factor (COF)")
+  ggtitle("Outlier Scores : Connectivity-Based Outlier Factor (COF)"))
 
 ##################################
 # Exploring the outlier scores
@@ -669,7 +671,8 @@ OD_DB_Summary$Label <- rep("DB", nrow(OD_DB_Summary))
 # for anomaly detection
 # by outlier classes
 ##################################
-ggplot(OD_DB_Summary, aes(x=PC1, y=PC2, color=Class)) +
+(OD_DB_Scatterplot <- ggplot(OD_DB_Summary, 
+                             aes(x=PC1, y=PC2, color=Class)) +
   geom_point(size=3, alpha=0.10) +
   scale_color_manual(values=c("#0000AA", "#AA0000")) +
   theme_bw() +
@@ -678,7 +681,7 @@ ggplot(OD_DB_Summary, aes(x=PC1, y=PC2, color=Class)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Classes : Distance-Based Outlier Detection (DB)")
+  ggtitle("Outlier Classes : Distance-Based Outlier Detection (DB)"))
 
 ##################################
 # Exploring the outlier classes
@@ -759,7 +762,8 @@ OD_INFLO_Summary$Label <- rep("INFLO", nrow(OD_INFLO_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_INFLO_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_INFLO_Scatterplot <- ggplot(OD_INFLO_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -768,7 +772,7 @@ ggplot(OD_INFLO_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Influenced Outlierness (INFLO)")
+  ggtitle("Outlier Scores : Influenced Outlierness (INFLO)"))
 
 ##################################
 # Exploring the outlier scores
@@ -840,7 +844,8 @@ OD_KDEOS_Summary$Label <- rep("KDEOS", nrow(OD_KDEOS_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_KDEOS_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_KDEOS_Scatterplot <- ggplot(OD_KDEOS_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -849,7 +854,7 @@ ggplot(OD_KDEOS_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Kernel-Density Estimation Outlier Score (KDEOS)")
+  ggtitle("Outlier Scores : Kernel-Density Estimation Outlier Score (KDEOS)"))
 
 ##################################
 # Exploring the outlier scores
@@ -921,7 +926,8 @@ OD_KNN_AGG_Summary$Label <- rep("KNN_AGG", nrow(OD_KNN_AGG_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_KNN_AGG_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_KNN_AGG_Scatterplot <- ggplot(OD_KNN_AGG_Summary, 
+                                  aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -930,7 +936,7 @@ ggplot(OD_KNN_AGG_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Aggregated K-Nearest Neighbors Distance (KNN_AGG)")
+  ggtitle("Outlier Scores : Aggregated K-Nearest Neighbors Distance (KNN_AGG)"))
 
 ##################################
 # Exploring the outlier scores
@@ -1001,7 +1007,8 @@ OD_KNN_IN_Summary$Label <- rep("KNN_IN", nrow(OD_KNN_IN_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_KNN_IN_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_KNN_IN_Scatterplot <- ggplot(OD_KNN_IN_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#AA00001A", high="#0000AA1A") +
   theme_bw() +
@@ -1010,7 +1017,7 @@ ggplot(OD_KNN_IN_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : In-Degree for Observations in a K-Nearest Neighbors Graph (KNN_IN)")
+  ggtitle("Outlier Scores : In-Degree for Observations in a K-Nearest Neighbors Graph (KNN_IN)"))
 
 ##################################
 # Exploring the outlier scores
@@ -1081,7 +1088,8 @@ OD_KNN_SUM_Summary$Label <- rep("KNN_SUM", nrow(OD_KNN_SUM_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_KNN_SUM_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_KNN_SUM_Scatterplot <- ggplot(OD_KNN_SUM_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -1090,7 +1098,7 @@ ggplot(OD_KNN_SUM_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Sum of Distance to K-Nearest Neighbors (KNN_SUM)")
+  ggtitle("Outlier Scores : Sum of Distance to K-Nearest Neighbors (KNN_SUM)"))
 
 ##################################
 # Exploring the outlier scores
@@ -1163,7 +1171,8 @@ OD_LDF_Summary$Label <- rep("LDF", nrow(OD_LDF_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_LDF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_LDF_Scatterplot <- ggplot(OD_LDF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -1172,7 +1181,7 @@ ggplot(OD_LDF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Local Density Factor (LDF)")
+  ggtitle("Outlier Scores : Local Density Factor (LDF)"))
 
 ##################################
 # Exploring the outlier scores
@@ -1243,7 +1252,8 @@ OD_LDOF_Summary$Label <- rep("LDOF", nrow(OD_LDOF_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_LDOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_LDOF_Scatterplot <- ggplot(OD_LDOF_Summary, 
+                               aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -1252,7 +1262,7 @@ ggplot(OD_LDOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Local Distance-Based Outlier Factor (LDOF)")
+  ggtitle("Outlier Scores : Local Distance-Based Outlier Factor (LDOF)"))
 
 ##################################
 # Exploring the outlier scores
@@ -1319,7 +1329,8 @@ OD_LOCI_Summary$Label <- rep("LOCI", nrow(OD_LOCI_Summary))
 # for anomaly detection
 # by outlier classes
 ##################################
-ggplot(OD_LOCI_Summary, aes(x=PC1, y=PC2, color=Class)) +
+(OD_LOCI_Scatterplot <- ggplot(OD_LOCI_Summary, 
+                               aes(x=PC1, y=PC2, color=Class)) +
   geom_point(size=3, alpha=0.10) +
   scale_color_manual(values=c("#0000AA", "#AA0000")) +
   theme_bw() +
@@ -1328,7 +1339,7 @@ ggplot(OD_LOCI_Summary, aes(x=PC1, y=PC2, color=Class)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Classes : Local Correlation Integral (LOCI)")
+  ggtitle("Outlier Classes : Local Correlation Integral (LOCI)"))
 
 ##################################
 # Exploring the outlier classes
@@ -1409,7 +1420,8 @@ OD_LOF_Summary$Label <- rep("LOF", nrow(OD_LOF_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_LOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_LOF_Scatterplot <- ggplot(OD_LOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -1418,7 +1430,7 @@ ggplot(OD_LOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Local Outlier Factor (LOF)")
+  ggtitle("Outlier Scores : Local Outlier Factor (LOF)"))
 
 ##################################
 # Exploring the outlier scores
@@ -1442,93 +1454,7 @@ Status <- ifelse(OD_LOF_Summary$Status=="Valid",0,1)
 
 ```
 
-###  1.5.12. Local Outlier Probability (LOOP)
-|
-| **[A]** The LOOP algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
-|
-| **[B]** The algorithm contains 2 hyperparameterS:
-|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to compare density with, held constant at a value of 5.
-|      **[B.2]** <span style="color: #FF0000">lambda</span> = multiplication factor for standard deviation, held constant at a value of 1.
-|
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
-|      **[C.1]** ROC Curve AUC = 0.XXXX
-|
-```{r section_1.5.12, warning=FALSE, message=FALSE}
-##################################
-# Loading dataset
-##################################
-OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
-
-##################################
-# Implementing the LOOP Algorithm
-##################################
-OD_LOOP <- LOOP(OD, k=5, lambda=1)
-OD_LOOP <- ifelse(OD_LOOP==1,"Outlier","Inlier")
-
-##################################
-# Determining the outlier classes
-# for anomaly detection
-# applied to the dataset
-##################################
-OD_LOOP_PredictedClass <- OD_LOOP
-
-##################################
-# Consolidating the outlier classes
-##################################
-OD_LOOP_Summary <- DR_PCA_SUBSET
-OD_LOOP_Summary$Class <- OD_LOOP_PredictedClass
-OD_LOOP_Summary$Status <- as.character(OD_LOOP_Summary$Status)
-OD_LOOP_Summary$Label <- rep("LOOP", nrow(OD_LOOP_Summary))
-
-##################################
-# Plotting the scatterplot
-# for anomaly detection
-# by outlier classes
-##################################
-ggplot(OD_LOOP_Summary, aes(x=PC1, y=PC2, color=Class)) +
-  geom_point(size=3, alpha=0.10) +
-  scale_color_manual(values=c("#0000AA", "#AA0000")) +
-  theme_bw() +
-  facet_grid(. ~ Label) +
-  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
-  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
-  theme(legend.position="top",
-        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Classes : Local Outlier Probability (LOOP)")
-
-##################################
-# Exploring the outlier classes
-# between the valid and outlier points
-##################################
-Class_Status_Data <- as.data.frame(cbind(OD_LOOP_Summary$Class,
-                                         OD_LOOP_Summary$Status))
-colnames(Class_Status_Data) <- c("Class","Status")
-Class_Status_Proportion <- as.data.frame(prop.table(table(Class_Status_Data), 2))
-Class_Status_Proportion$Label <- rep("LOOP", nrow(Class_Status_Proportion))
-Class_Status_Proportion
-
-barchart(Freq ~ Status | Label,
-         data = Class_Status_Proportion,
-         groups = Class,
-         stack = TRUE,
-         ylab = "Proportion",
-         main = "Outlier Classes : Local Correlation Integral (LOOP)",
-         xlab = "Status",
-         auto.key = list(adj = 1))
-
-##################################
-# Evaluating the apparent 
-# discrimination performance
-# of the LOOP Algorithm
-##################################
-Status <- ifelse(OD_LOOP_Summary$Status=="Valid",0,1)
-OD_LOOP_PredictedClassLevel <- ifelse(OD_LOOP_Summary$Class=="Inlier",0,1)
-
-(OD_LOOP_ROCCurveAUC <- AUC(OD_LOOP_PredictedClassLevel, Status))
-
-```
-
-###  1.5.13. Natural Outlier Factor (NOF)
+###  1.5.12. Natural Outlier Factor (NOF)
 |
 | **[A]** The NOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1574,7 +1500,8 @@ OD_NOF_Summary$Label <- rep("NOF", nrow(OD_NOF_Summary))
 # for anomaly detection
 # adjusted to the outlier scores
 ##################################
-ggplot(OD_NOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+(OD_NOF_Scatterplot <- ggplot(OD_NOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   geom_point() +
   scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
   theme_bw() +
@@ -1583,7 +1510,7 @@ ggplot(OD_NOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
   scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
   theme(legend.position="top",
         plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Natural Outlier Factor (NOF)")
+  ggtitle("Outlier Scores : Natural Outlier Factor (NOF)"))
 
 ##################################
 # Exploring the outlier scores
@@ -1607,265 +1534,228 @@ Status <- ifelse(OD_NOF_Summary$Status=="Valid",0,1)
 
 ```
 
-###  1.5.14. Relative Density-Based Outlier Factor (RDOS)
-|
-| **[A]** The RDOS algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
-|
-| **[B]** The algorithm contains 2 hyperparameters:
-|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors used to identify reverse- and shared nearest neighbors, held constant at a value of 50.
-|      **[B.2]** <span style="color: #FF0000">h</span> = bandwidth parameter for gaussian kernel held constant at a value of 0.10.
-|
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
-|      **[C.1]** ROC Curve AUC = 0.xxxx
-|
-```{r section_1.5.14, warning=FALSE, message=FALSE}
-##################################
-# Loading dataset
-##################################
-OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
-
-##################################
-# Implementing the RDOS Algorithm
-##################################
-OD_RDOS <- RDOS(OD, k=20, h=2)
-
-##################################
-# Determining the outlier scores
-# for anomaly detection
-# applied to the dataset
-##################################
-OD_RDOS_PredictedScores <- OD_RDOS
-
-##################################
-# Exploring the outlier scores
-# between the valid and outlier points
-##################################
-max(OD_RDOS_PredictedScores)
-min(OD_RDOS_PredictedScores)
-
-##################################
-# Consolidating the outlier scores
-##################################
-OD_RDOS_Summary <- DR_PCA_SUBSET
-OD_RDOS_Summary$Scores <- OD_RDOS_PredictedScores
-OD_RDOS_Summary$Label <- rep("RDOS", nrow(OD_RDOS_Summary))
-
-##################################
-# Plotting the scatterplot
-# for anomaly detection
-# adjusted to the outlier scores
-##################################
-ggplot(OD_RDOS_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
-  geom_point() +
-  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
-  theme_bw() +
-  facet_grid(. ~ Label) +
-  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
-  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
-  theme(legend.position="top",
-        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Relative Density-Based Outlier Factor (RDOS)")
-
-##################################
-# Exploring the outlier scores
-# between the valid and outlier points
-##################################
-densityplot( ~ Scores | Label,
-             data = OD_RDOS_Summary,
-             groups = Status,
-             xlab = "Outlier Scores",
-             ylab = "Density",
-             auto.key = list(columns = (length(levels(OD_RDOS_Summary$Status)))))
-
-##################################
-# Evaluating the apparent 
-# discrimination performance
-# of the RDOS Algorithm
-##################################
-Status <- ifelse(OD_RDOS_Summary$Status=="Valid",0,1)
-
-(OD_RDOS_ROCCurveAUC <- AUC(OD_RDOS_PredictedScores, Status))
-
-```
-
-###  1.5.15. Robust Kernel-Based Outlier Factor (RKOF)
-|
-| **[A]** The RKOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
-|
-| **[B]** The algorithm contains 4 hyperparameterS:
-|      **[B.1]** <span style="color: #FF0000">k</span> = number of nearest neighbors to compare density estimation with, held constant at a value of 50.
-|      **[B.2]** <span style="color: #FF0000">C</span> = mMultiplication parameter for k-distance of neighboring observations held constant at a value of 1.
-|      **[B.3]** <span style="color: #FF0000">alpha</span> = sensivity parameter for k-distance and bandwidth, held constant at a value of 1.
-|      **[B.4]** <span style="color: #FF0000">sigma2</span> = variance parameter for weighting of neighboring observations held constant at a value of 1.
-|
-| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
-|      **[C.1]** ROC Curve AUC = 0.xxxx
-|
-```{r section_1.5.15, warning=FALSE, message=FALSE}
-##################################
-# Loading dataset
-##################################
-OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
-
-##################################
-# Implementing the RKOF Algorithm
-##################################
-OD_RKOF <- RKOF(OD, k=50, C=1, alpha=1, sigma2=1)
-
-##################################
-# Determining the outlier scores
-# for anomaly detection
-# applied to the dataset
-##################################
-OD_RKOF_PredictedScores <- OD_RKOF
-
-##################################
-# Exploring the outlier scores
-# between the valid and outlier points
-##################################
-max(OD_RKOF_PredictedScores)
-min(OD_RKOF_PredictedScores)
-
-##################################
-# Consolidating the outlier scores
-##################################
-OD_RKOF_Summary <- DR_PCA_SUBSET
-OD_RKOF_Summary$Scores <- OD_RKOF_PredictedScores
-OD_RKOF_Summary$Label <- rep("RKOF", nrow(OD_RKOF_Summary))
-
-##################################
-# Plotting the scatterplot
-# for anomaly detection
-# adjusted to the outlier scores
-##################################
-ggplot(OD_RKOF_Summary, aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
-  geom_point() +
-  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
-  theme_bw() +
-  facet_grid(. ~ Label) +
-  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
-  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
-  theme(legend.position="top",
-        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
-  ggtitle("Outlier Scores : Robust Kernel-Based Outlier Factor (RKOF)")
-
-##################################
-# Exploring the outlier scores
-# between the valid and outlier points
-##################################
-densityplot( ~ Scores | Label,
-             data = OD_RKOF_Summary,
-             groups = Status,
-             xlab = "Outlier Scores",
-             ylab = "Density",
-             auto.key = list(columns = (length(levels(OD_RKOF_Summary$Status)))))
-
-##################################
-# Evaluating the apparent 
-# discrimination performance
-# of the RKOF Algorithm
-##################################
-Status <- ifelse(OD_RKOF_Summary$Status=="Valid",0,1)
-
-(OD_RKOF_ROCCurveAUC <- AUC(OD_RKOF_PredictedScores, Status))
-
-```
-
 ##  1.6 Algorithm Comparison Summary
 |
 | Algorithm performance comparison:
 |
 | **[A]** The density and distance-based anomaly detection algorithms applied to the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors which were able to sufficiently capture the outlier points based on the higher estimated ROC curve AUC are the following :
-|      **[A.1]** XXX : XXX (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
-|             **[A.1.1]** ROC Curve AUC = 0.XXXXX
-|      **[A.2]** XXX : XXX (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
-|             **[A.2.1]** ROC Curve AUC = 0.XXXXX
+|      **[A.1]** KNN_SUM : Sum of Distance to K-Nearest Neighbors (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
+|             **[A.1.1]** ROC Curve AUC = 0.80504
+|      **[A.2]** KNN_AGG : Aggregated K-Nearest Neighbors Distance (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
+|             **[A.2.1]** ROC Curve AUC = 0.79965
 |
 ```{r section_1.6, warning=FALSE, message=FALSE}
+##################################
+# Replotting the scatterplots
+##################################
+OD_COF_Scatterplot <- ggplot(OD_COF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
 
-# ##################################
-# # Replotting the density plots
-# ##################################
-# OD_Summary <- rbind(OD_IF_Summary,
-#                     OD_EIF_Summary,
-#                     OD_SCIFOREST_Summary,
-#                     OD_FCF_Summary,
-#                     OD_DIF_Summary,
-#                     OD_BIF_Summary)
-# 
-# ##################################
-# # Replotting the heatmaps
-# ##################################
-# par(mfrow=c(3,2),
-#     mar = c(2.5,2.2,2,2.5))
-# 
-# Plot_Space_Range(OD_IF_DevianceScores,
-#                  "Outlier Scores : Isolation Forest (IF)",
-#                  1.0)
-# 
-# Plot_Space_Range(OD_EIF_DevianceScores,
-#                  "Outlier Scores : Extended Isolation Forest (EIF)",
-#                  1.0)
-# 
-# Plot_Space_Range(OD_SCIFOREST_DevianceScores,
-#                  "Outlier Scores : Isolation Forest with Split Selection Criterion (SCIFOREST)",
-#                  1.0)
-# 
-# Plot_Space_Range(OD_FCF_DevianceScores,
-#                  "Outlier Scores : Fair-Cut Forest (FCF)",
-#                  1.0)
-# 
-# Plot_Space_Range(OD_DIF_DevianceScores,
-#                  "Outlier Scores : Density Isolation Forest (DIF)",
-#                  1.0)
-# 
-# Plot_Space_Range(OD_BIF_DevianceScores,
-#                  "Outlier Scores : Boxed Isolation Forest (BIF)",
-#                  1.0)
-# 
-# ##################################
-# # Consolidating all evaluation results
-# # using the apparent ROC Curve AUC metric
-# ##################################
-# OutlierDetectionAlgorithm <- c('IF','EIF','SCIFOREST',
-#                                'FCF','DIF','BIF')
-# 
-# Set <- c(rep('ROC Curve AUC',6))
-# 
-# OutlierDetectionMetrics <- c(OD_IF_ROCCurveAUC,
-#                              OD_EIF_ROCCurveAUC,
-#                              OD_SCIFOREST_ROCCurveAUC,
-#                              OD_FCF_ROCCurveAUC,
-#                              OD_DIF_ROCCurveAUC,
-#                              OD_BIF_ROCCurveAUC)
-# 
-# OutlierDetectionPeformance_Summary <- as.data.frame(cbind(OutlierDetectionAlgorithm,
-#                                                     Set,
-#                                                     OutlierDetectionMetrics))
-# 
-# OutlierDetectionPeformance_Summary$OutlierDetectionMetrics <- as.numeric(as.character(OutlierDetectionPeformance_Summary$OutlierDetectionMetrics))
-# OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm <- factor(OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm,
-#                                                       levels = c('IF',
-#                                                                  'EIF',
-#                                                                  'SCIFOREST',
-#                                                                  'FCF',
-#                                                                  'DIF',
-#                                                                  'BIF'))
-# 
-# print(OutlierDetectionPeformance_Summary, row.names=FALSE)
-# 
-# (OutlierDetectionPeformance_Summary_Plot <- dotplot(OutlierDetectionAlgorithm ~ OutlierDetectionMetrics,
-#                           data = OutlierDetectionPeformance_Summary,
-#                           groups = Set,
-#                           main = "Anomaly Detection Algorithm Performance Comparison",
-#                           ylab = "Algorithm",
-#                           xlab = "Anomaly Detection Performance Metrics",
-#                           auto.key = list(adj = 1),
-#                           type=c("p", "h"),
-#                           origin = 0,
-#                           alpha = 0.45,
-#                           pch = 16,
-#                           cex = 2))
+OD_DB_Scatterplot <- ggplot(OD_DB_Summary, 
+                             aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_INFLO_Scatterplot <- ggplot(OD_INFLO_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KDEOS_Scatterplot <- ggplot(OD_KDEOS_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KNN_AGG_Scatterplot <- ggplot(OD_KNN_AGG_Summary, 
+                                  aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KNN_IN_Scatterplot <- ggplot(OD_KNN_IN_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#AA00001A", high="#0000AA1A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KNN_SUM_Scatterplot <- ggplot(OD_KNN_SUM_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LDF_Scatterplot <- ggplot(OD_LDF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LDOF_Scatterplot <- ggplot(OD_LDOF_Summary, 
+                               aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LOCI_Scatterplot <- ggplot(OD_LOCI_Summary, 
+                               aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LOF_Scatterplot <- ggplot(OD_LOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_NOF_Scatterplot <- ggplot(OD_NOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_Scatterplot <- ggarrange(OD_COF_Scatterplot,
+                            OD_DB_Scatterplot,
+                            OD_INFLO_Scatterplot,
+                            OD_KDEOS_Scatterplot,
+                            OD_KNN_AGG_Scatterplot,
+                            OD_KNN_IN_Scatterplot,
+                            OD_KNN_SUM_Scatterplot,
+                            OD_LDF_Scatterplot,
+                            OD_LDOF_Scatterplot,
+                            OD_LOCI_Scatterplot,
+                            OD_LOF_Scatterplot,
+                            OD_NOF_Scatterplot,
+                            ncol=4, nrow=3)
+
+annotate_figure(OD_Scatterplot,
+                top = text_grob("Outlier Scores | Classes", 
+                                color = "black", 
+                                face = "bold", 
+                                size = 14))
+
+##################################
+# Consolidating all evaluation results
+# using the apparent ROC Curve AUC metric
+##################################
+OutlierDetectionAlgorithm <- c('COF','DB','INFLO','KDEOS',
+                               'KNN_AGG','KNN_IN','KNN_SUM','LDF',
+                               'LDOF','LOCI','LOF','NOF')
+
+Set <- c(rep('ROC Curve AUC',12))
+
+OutlierDetectionMetrics <- c(OD_COF_ROCCurveAUC,
+                             OD_DB_ROCCurveAUC,
+                             OD_INFLO_ROCCurveAUC,
+                             OD_KDEOS_ROCCurveAUC,
+                             OD_KNN_AGG_ROCCurveAUC,
+                             OD_KNN_IN_ROCCurveAUC,
+                             OD_KNN_SUM_ROCCurveAUC,
+                             OD_LDF_ROCCurveAUC,
+                             OD_LDOF_ROCCurveAUC,
+                             OD_LOCI_ROCCurveAUC,
+                             OD_LOF_ROCCurveAUC,
+                             OD_NOF_ROCCurveAUC)
+
+OutlierDetectionPeformance_Summary <- as.data.frame(cbind(OutlierDetectionAlgorithm,
+                                                    Set,
+                                                    OutlierDetectionMetrics))
+
+OutlierDetectionPeformance_Summary$OutlierDetectionMetrics <- as.numeric(as.character(OutlierDetectionPeformance_Summary$OutlierDetectionMetrics))
+OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm <- factor(OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm,
+                                                      levels = c('COF',
+                                                                 'DB',
+                                                                 'INFLO',
+                                                                 'KDEOS',
+                                                                 'KNN_AGG',
+                                                                 'KNN_IN',
+                                                                 'KNN_SUM',
+                                                                 'LDF',
+                                                                 'LDOF',
+                                                                 'LOCI',
+                                                                 'LOF',
+                                                                 'NOF'))
+
+print(OutlierDetectionPeformance_Summary, row.names=FALSE)
+
+(OutlierDetectionPeformance_Summary_Plot <- dotplot(OutlierDetectionAlgorithm ~ OutlierDetectionMetrics,
+                          data = OutlierDetectionPeformance_Summary,
+                          groups = Set,
+                          main = "Anomaly Detection Algorithm Performance Comparison",
+                          ylab = "Algorithm",
+                          xlab = "Anomaly Detection Performance Metrics",
+                          auto.key = list(adj = 1),
+                          type=c("p", "h"),
+                          origin = 0,
+                          alpha = 0.45,
+                          pch = 16,
+                          cex = 2))
 
 ```
 
@@ -1904,10 +1794,11 @@ Status <- ifelse(OD_RKOF_Summary$Status=="Valid",0,1)
 
 | **[Publication]** [Fast Outlier Detection in High Dimensional Spaces](https://link.springer.com/chapter/10.1007/3-540-45681-3_2) by Fabrizio Angiulli and Clara Pizzuti (International Conference on Knowledge Discovery and Data Mining (SIGKDD))
 | **[Publication]** [LOF: Identifying Density-Based Local Outliers](https://dl.acm.org/doi/10.1145/335191.335388) by Markus Breunig, Hans-Peter Kriegel, Raymond Ng and Jorg Sander ( International Conference On Management of Data)
+| **[Publication]** [RKOF: Robust Kernel-Based Local Outlier Detection](https://link.springer.com/chapter/10.1007/978-3-642-20847-8_23) by Jun Gao, Weiming Hu, Zhongfei (Mark) Zhang, Xiaoqin Zhang and Ou Wu (Pacific-Asia Conference on Knowledge Discovery and Data Mining: Advances in Knowledge Discovery and Data Mining)
+| **[Publication]** [Outlier Detection Using K-Nearest Neighbour Graph](https://ieeexplore.ieee.org/document/1334558/authors#authors) by Ville Hautamaki, Ismo Karkkainen and Pasi Franti (International Conference on Pattern Recognition)
 
 
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
-| **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
+
 | **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
 | **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
 | **[Publication]** [Isolation Forest](https://ieeexplore.ieee.org/document/4781136/) by Fei Tony Liu, Kai Ming Ting and Zhi-Hua Zhou (2008 Eighth IEEE International Conference on Data Mining)
