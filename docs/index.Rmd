@@ -32,7 +32,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
 |      **[B.1]** 1/37 label = <span style="color: #FF0000">Status</span> variable (factor)
 |             **[B.1.1]** Category 1 = <span style="color: #FF0000">Status=Outlier</span> 
 |             **[B.1.2]** Category 2 = <span style="color: #FF0000">Status=Valid</span> 
-|      **[B.2]** 36/37 descriptors = 36/36 numeric
+|      **[B.2]** 36/37 descriptors = 36/36 (numeric)
 |     
 |  
 ```{r section_1.1, warning=FALSE, message=FALSE}
