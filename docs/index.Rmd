@@ -550,7 +550,7 @@ splom(~EDA[,sapply(EDA, is.numeric)],
 
 ###  1.5.1. Connectivity-Based Outlier Factor (COF)
 |
-| [COF](https://link.springer.com/chapter/10.1007/3-540-47887-6_53) computes the connectivity-based outlier factor for observations, being the comparison of chaining-distances between observation subject to outlier scoring and neighboring observations. 
+| [Connectivity-Based Outlier Factor](https://link.springer.com/chapter/10.1007/3-540-47887-6_53) computes the connectivity-based outlier factor for observations, being the comparison of chaining-distances between observation subject to outlier scoring and neighboring observations. 
 |
 | **[A]** The COF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -633,7 +633,7 @@ Status <- ifelse(OD_COF_Summary$Status=="Valid",0,1)
 
 ###  1.5.2. Distance-Based Outlier Detection (DB)
 |
-| [DB](https://dl.acm.org/doi/10.5555/782010.782021) computes a neighborhood for each observation given a radius (argument ’d’) and returns the number of neighbors within the neighborhood. Observations are classified as inliers or outliers, based on a proportion (argument ’fraction’) of observations to be within the neighborhood. 
+| [Distance-Based Outlier Detection](https://dl.acm.org/doi/10.5555/782010.782021) computes a neighborhood for each observation given a radius (argument ’d’) and returns the number of neighbors within the neighborhood. Observations are classified as inliers or outliers, based on a proportion (argument ’fraction’) of observations to be within the neighborhood. 
 |
 | **[A]** The DB algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -721,7 +721,7 @@ OD_DB_PredictedClassLevel <- ifelse(OD_DB_Summary$Class=="Inlier",0,1)
 
 ###  1.5.3. Influenced Outlierness (INFLO)
 |
-| [INFLO](https://link.springer.com/chapter/10.1007/11731139_68) computes the influenced outlierness score for observations, being the comparison of density in neighborhood of observation subject to outlier scoring and density in the reverse neighborhood. 
+| [Influenced Outlierness](https://link.springer.com/chapter/10.1007/11731139_68) computes the influenced outlierness score for observations, being the comparison of density in neighborhood of observation subject to outlier scoring and density in the reverse neighborhood. 
 |
 | **[A]** The INFLO algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -804,7 +804,7 @@ Status <- ifelse(OD_INFLO_Summary$Status=="Valid",0,1)
 
 ###  1.5.4. Kernel-Density Estimation Outlier Score (KDEOS)
 |
-| [KDEOS](https://epubs.siam.org/doi/10.1137/1.9781611973440.63) computes a kernel density estimation over a user-given range of k-nearest neighbors. The score is normalized between 0 and 1, such that observation with 1 has the lowest density estimation and greatest outlierness. A gaussian kernel is used for estimation with a bandwidth being the reachability distance for neighboring observations. 
+| [Kernel-Density Estimation Outlier Score](https://epubs.siam.org/doi/10.1137/1.9781611973440.63) computes a kernel density estimation over a user-given range of k-nearest neighbors. The score is normalized between 0 and 1, such that observation with 1 has the lowest density estimation and greatest outlierness. A gaussian kernel is used for estimation with a bandwidth being the reachability distance for neighboring observations. 
 |
 | **[A]** The KDEOS algorithm with gaussian kernel was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -888,7 +888,7 @@ Status <- ifelse(OD_KDEOS_Summary$Status=="Valid",0,1)
 
 ###  1.5.5. Aggregated K-Nearest Neighbors Distance (KNN_AGG)
 |
-| [KNN_AGG](https://link.springer.com/chapter/10.1007/3-540-45681-3_2) computes the aggregated distance to neighboring observations by aggregating the results from k_min to k_max nearest neighbors. 
+| [Aggregated K-Nearest Neighbors Distance](https://link.springer.com/chapter/10.1007/3-540-45681-3_2) computes the aggregated distance to neighboring observations by aggregating the results from k_min to k_max nearest neighbors. 
 |
 | **[A]** The KNN-AGG algorithm with gaussian kernel was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -972,7 +972,7 @@ Status <- ifelse(OD_KNN_AGG_Summary$Status=="Valid",0,1)
 
 ###  1.5.6. In-Degree for Observations in a K-Nearest Neighbors Graph (KNN_IN)
 |
-| [KNN_IN](https://ieeexplore.ieee.org/document/1334558/authors#authors) computes the in-degree, being the number of reverse neighbors, using a k-nearest neighbors graph.
+| [In-Degree for Observations in a K-Nearest Neighbors Graph](https://ieeexplore.ieee.org/document/1334558/authors#authors) computes the in-degree, being the number of reverse neighbors, using a k-nearest neighbors graph.
 |
 | **[A]** The KNN_IN algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1055,7 +1055,7 @@ Status <- ifelse(OD_KNN_IN_Summary$Status=="Valid",0,1)
 
 ###  1.5.7. Sum of Distance to K-Nearest Neighbors (KNN-SUM)
 |
-| [KNN-SUM](https://cran.r-project.org/web/packages/DDoutlier/DDoutlier.pdf) computes the sum of distance to neighboring observations.
+| [Sum of Distance to K-Nearest Neighbors](https://cran.r-project.org/web/packages/DDoutlier/DDoutlier.pdf) computes the sum of distance to neighboring observations.
 |
 | **[A]** The KNN_SUM algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1138,7 +1138,7 @@ Status <- ifelse(OD_KNN_SUM_Summary$Status=="Valid",0,1)
 
 ###  1.5.8. Local Density Factor (LDF)
 |
-| [LDF](https://link.springer.com/chapter/10.1007/978-3-540-73499-4_6) computes a kernel density estimation, called LDE, over a user-given number of k-nearest neighbors. The LDF score is the comparison of Local Density Estimate (LDE) for an observation to its neighboring observations.
+| [Local Density Factor](https://link.springer.com/chapter/10.1007/978-3-540-73499-4_6) computes a kernel density estimation, called LDE, over a user-given number of k-nearest neighbors. The LDF score is the comparison of Local Density Estimate (LDE) for an observation to its neighboring observations.
 |
 | **[A]** The LDF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1223,7 +1223,7 @@ Status <- ifelse(OD_LDF_Summary$Status=="Valid",0,1)
 
 ###  1.5.9. Local Distance-Based Outlier Factor (LDOF)
 |
-| [LDOF](https://link.springer.com/chapter/10.1007/978-3-642-01307-2_84) computes distance for an observations to its to k-nearest neighbors and compare the distance with the average distances between the nearest neighbors.
+| [Local Distance-Based Outlier Factor](https://link.springer.com/chapter/10.1007/978-3-642-01307-2_84) computes distance for an observations to its to k-nearest neighbors and compare the distance with the average distances between the nearest neighbors.
 |
 | **[A]** The LDOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1306,7 +1306,7 @@ Status <- ifelse(OD_LDOF_Summary$Status=="Valid",0,1)
 
 ###  1.5.10. Local Correlation Integral (LOCI)
 |
-| [LOCI](https://ieeexplore.ieee.org/document/1260802) computes a counting neighborhood to the nearest-neighbor nearest observations, where the radius is equal to the outermost observation. Within the counting neighborhood each observation has a sampling neighborhood of which the size is determined by the alpha input parameter.
+| [Local Correlation Integral](https://ieeexplore.ieee.org/document/1260802) computes a counting neighborhood to the nearest-neighbor nearest observations, where the radius is equal to the outermost observation. Within the counting neighborhood each observation has a sampling neighborhood of which the size is determined by the alpha input parameter.
 |
 | **[A]** The LOCI algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1395,7 +1395,7 @@ OD_LOCI_PredictedClassLevel <- ifelse(OD_LOCI_Summary$Class=="Inlier",0,1)
 
 ###  1.5.11. Local Outlier Factor (LOF)
 |
-| [LOF](https://dl.acm.org/doi/10.1145/335191.335388) computes a local density for observations with a user-given k-nearest neighbors. The density is compared to the density of the respective nearest neighbors, resulting in the local outlier factor.
+| [Local Outlier Factor](https://dl.acm.org/doi/10.1145/335191.335388) computes a local density for observations with a user-given k-nearest neighbors. The density is compared to the density of the respective nearest neighbors, resulting in the local outlier factor.
 |
 | **[A]** The LOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1478,7 +1478,7 @@ Status <- ifelse(OD_LOF_Summary$Status=="Valid",0,1)
 
 ###  1.5.12. Natural Outlier Factor (NOF)
 |
-| [NOF](https://www.sciencedirect.com/science/article/abs/pii/S0950705115004013?via%3Dihub) computes the nearest and reverse nearest neighborhood for observations, based on the natural neighborhood algorithm. Density is compared between observations and their neighbors.
+| [Natural Outlier Factor](https://www.sciencedirect.com/science/article/abs/pii/S0950705115004013?via%3Dihub) computes the nearest and reverse nearest neighborhood for observations, based on the natural neighborhood algorithm. Density is compared between observations and their neighbors.
 |
 | **[A]** The NOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
 |
@@ -1487,7 +1487,7 @@ Status <- ifelse(OD_LOF_Summary$Status=="Valid",0,1)
 | **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
 |      **[C.1]** ROC Curve AUC = 0.54914
 |
-```{r section_1.5.13, warning=FALSE, message=FALSE}
+```{r section_1.5.12, warning=FALSE, message=FALSE}
 ##################################
 # Loading dataset
 ##################################
