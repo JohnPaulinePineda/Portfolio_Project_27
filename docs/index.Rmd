@@ -1,5 +1,5 @@
 ---
-title: "R : Estimating Outlier Scores Using Density and Distance-Based Anomaly Detection Algorithms"
+title: "Unsupervised Learning : Estimating Outlier Scores Using Density and Distance-Based Anomaly Detection Algorithms"
 author: "John Pauline Pineda"
 date: "February 13, 2023"
 output: 
