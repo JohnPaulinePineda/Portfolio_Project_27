@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
 ```
 # **1. Table of Contents**
 |
-| This project explores different density and distance-based anomaly detection algorithms for estimating outlier scores using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>. Methods applied in the analysis to identify abnormal points with patterns significantly deviating away from the remaining data included the **Connectivity-Based Outlier Factor**, **Distance-Based Outlier Detection**, **Influenced Outlierness**, **Kernel-Density Estimation Outlier Score**, **Aggregated K-Nearest Neighbors Distance**, **In-Degree for Observations in a K-Nearest Neighbors Graph**, **Sum of Distance to K-Nearest Neighbors**, **Local Density Factor**, **Local Distance-Based Outlier Factor**, **Local Correlation Integral**, **Local Outlier Factor** and **Natural Outlier Factor** algorithms. Using an independent label indicating the valid and outlying points from the data, the different anomaly-detection algorithms were evaluated based on their capability to effectively discriminate both data categories using the receiver operating characteristic (ROC) curve area under the curve (AUC) metric.
+| This project explores different density and distance-based anomaly detection algorithms for estimating outlier scores using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>. Methods applied in the analysis to identify abnormal points with patterns significantly deviating away from the remaining data included the **Connectivity-Based Outlier Factor**, **Distance-Based Outlier Detection**, **Influenced Outlierness**, **Kernel-Density Estimation Outlier Score**, **Aggregated K-Nearest Neighbors Distance**, **In-Degree for Observations in a K-Nearest Neighbors Graph**, **Sum of Distance to K-Nearest Neighbors**, **Local Density Factor**, **Local Distance-Based Outlier Factor**, **Local Correlation Integral**, **Local Outlier Factor** and **Natural Outlier Factor** algorithms. Using an independent label indicating the valid and outlying points from the data, the different anomaly-detection algorithms were evaluated based on their capability to effectively discriminate both data categories using the receiver operating characteristic (ROC) curve area under the curve (AUC) metric. All results were consolidated in a [<span style="color: #FF0000">**Summary**</span>](#summary) presented at the end of the document.
 |
 | Outlier detection is a form of unsupervised anomaly detection method aimed at detecting abnormal or unusual observations in a multidimensional domain. The algorithms applied in this study (mostly contained in the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package) attempt to identify local outliers by comparing observations to their nearest neighbors, reverse nearest neighbors, shared neighbors or natural neighbors, while assuming that these deviant points are located in low density regions.
 |
@@ -117,8 +117,6 @@ PDA <- Satellite
 </details>
 
 ##  1.2 Data Quality Assessment
-|
-| Data quality assessment:
 |
 | **[A]** No missing observations noted for any variable.
 |
@@ -356,8 +354,6 @@ if (length(names(DQA.Descriptors.Numeric))==0) {
 
 ###  1.3.1 Centering and Scaling
 |
-| Centering and Scaling data assessment:
-|
 | **[A]** To maintain an objective comparison across the different descriptors, centering and scaling transformation was applied on the numeric variables. The <span style="color: #0000FF">center</span> method from the <mark style="background-color: #CCECFF">**caret**</mark> package was implemented which subtracts the average value of a numeric variable to all the values. As a result of centering, the variables had zero mean values. In addition, the <span style="color: #0000FF">scale</span> method, also from the <mark style="background-color: #CCECFF">**caret**</mark> package, was applied which performs a center transformation with each value of the variable divided by its standard deviation. Scaling the data coerced the values to have a common standard deviation of one.
 |
 |
@@ -393,8 +389,6 @@ row.names(DPA.Descriptors.Numeric_CenteredScaledTransformed) <- NULL
 </details>
 
 ###  1.3.2 Dimensionality Reduction
-|
-| Data transformation assessment:
 |
 | **[A]** Considering the high dimensional nature of the dataset, Principal Component Analysis (PCA) was applied to summarize the information content from the 36 descriptors by means of a smaller set of summary indices composed of the first two principal components, enabling a more efficient visualization and analysis.
 |
@@ -448,15 +442,13 @@ DR_PCA$x <- as.data.frame(DR_PCA$x)
 
 ###  1.3.3 Pre-Processed Dataset
 |
-| Preliminary dataset assessment:
-|
 | **[A]** 6435 rows (observations)
 | 
-| **[B]** 4 columns (variables)
-|      **[B.1]** 1/4 label = <span style="color: #FF0000">labs</span> variable (factor)
+| **[B]** 3 columns (variables)
+|      **[B.1]** 1/3 label = <span style="color: #FF0000">labs</span> variable (factor)
 |             **[B.1.1]** Category 1 = <span style="color: #FF0000">Status=Outlier</span> 
 |             **[B.1.2]** Category 2 = <span style="color: #FF0000">Status=Valid</span> 
-|      **[B.2]** 3/4 descriptors = 3/3 numeric
+|      **[B.2]** 2/3 descriptors = 2/2 numeric
 |             **[B.2.1]** <span style="color: #FF0000">PC1</span> variable
 |             **[B.2.2]** <span style="color: #FF0000">PC2</span> variable 
 | 
@@ -479,8 +471,6 @@ DR_PCA$x <- as.data.frame(DR_PCA$x)
 </details>
 
 ## 1.4 Data Exploration
-|
-| Exploratory data analysis:
 |
 | **[A]** From a univariate sense, principal component descriptors demonstrated various relationship patterns across the different levels of the <span style="color: #FF0000">Status</span> variable.
 |             **[A.1.1]** <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span> cases are differentially expressed in terms of the <span style="color: #FF0000">PC1</span>, <span style="color: #FF0000">PC2</span> and <span style="color: #FF0000">PC3</span> variables.
@@ -1666,9 +1656,7 @@ Status <- ifelse(OD_NOF_Summary$Status=="Valid",0,1)
 
 </details>
 
-##  1.6 Algorithm Comparison Summary
-|
-| Algorithm performance comparison:
+##  1.6 Consolidated Findings
 |
 | **[A]** The density and distance-based anomaly detection algorithms applied to the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors which were able to sufficiently capture the outlier points based on the higher estimated ROC curve AUC are the following :
 |      **[A.1]** **KNN_SUM : Sum of Distance to K-Nearest Neighbors** (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
@@ -1896,7 +1884,11 @@ print(OutlierDetectionPeformance_Summary, row.names=FALSE)
 ```
 
 </details>
-
+|
+# **2. Summary** <a name="summary"></a>
+|
+| ![](D:/Github_Codes/ProjectPortfolio/Portfolio_Project_27/docs/Project27_Summary.png)
+|
 # **2. References**
 |
 | **[Book]** [Applied Predictive Modeling](http://appliedpredictivemodeling.com/) by Max Kuhn and Kjell Johnson
