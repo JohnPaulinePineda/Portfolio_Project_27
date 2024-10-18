@@ -1,0 +1,1947 @@
+---
+title: "Unsupervised Learning : Estimating Outlier Scores Using Density and Distance-Based Anomaly Detection Algorithms"
+author: "John Pauline Pineda"
+date: "February 13, 2023"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    theme: readable
+    highlight: tango
+    css: doc.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width=15, fig.height=10)
+```
+# **1. Table of Contents**
+|
+| This project explores different density and distance-based anomaly detection algorithms for estimating outlier scores using various helpful packages in <mark style="background-color: #CCECFF">**R**</mark>. Methods applied in the analysis to identify abnormal points with patterns significantly deviating away from the remaining data included the **Connectivity-Based Outlier Factor**, **Distance-Based Outlier Detection**, **Influenced Outlierness**, **Kernel-Density Estimation Outlier Score**, **Aggregated K-Nearest Neighbors Distance**, **In-Degree for Observations in a K-Nearest Neighbors Graph**, **Sum of Distance to K-Nearest Neighbors**, **Local Density Factor**, **Local Distance-Based Outlier Factor**, **Local Correlation Integral**, **Local Outlier Factor** and **Natural Outlier Factor** algorithms. Using an independent label indicating the valid and outlying points from the data, the different anomaly-detection algorithms were evaluated based on their capability to effectively discriminate both data categories using the receiver operating characteristic (ROC) curve area under the curve (AUC) metric. All results were consolidated in a [<span style="color: #FF0000">**Summary**</span>](#summary) presented at the end of the document.
+|
+| Outlier detection is a form of unsupervised anomaly detection method aimed at detecting abnormal or unusual observations in a multidimensional domain. The algorithms applied in this study (mostly contained in the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package) attempt to identify local outliers by comparing observations to their nearest neighbors, reverse nearest neighbors, shared neighbors or natural neighbors, while assuming that these deviant points are located in low density regions.
+|
+##  1.1 Sample Data
+|
+| The <mark style="background-color: #EEEEEE;color: #FF0000">**Satellite**</mark>  dataset from the <mark style="background-color: #CCECFF">**isotree**</mark> and <mark style="background-color: #CCECFF">**mlbench**</mark> packages was used for this illustrated example.
+|
+| Preliminary dataset assessment:
+|
+| **[A]** 6435 rows (observations)
+| 
+| **[B]** 37 columns (variables)
+|      **[B.1]** 1/37 label = <span style="color: #FF0000">Status</span> variable (factor)
+|             **[B.1.1]** Category 1 = <span style="color: #FF0000">Status=Outlier</span> 
+|             **[B.1.2]** Category 2 = <span style="color: #FF0000">Status=Valid</span> 
+|      **[B.2]** 36/37 descriptors = 36/36 (numeric)
+|     
+|  
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.1, warning=FALSE, message=FALSE}
+##################################
+# Loading R libraries
+##################################
+library(AppliedPredictiveModeling)
+library(caret)
+library(rpart)
+library(lattice)
+library(dplyr)
+library(tidyr)
+library(moments)
+library(skimr)
+library(RANN)
+library(pls)
+library(corrplot)
+library(tidyverse)
+library(lares)
+library(DMwR)
+library(gridExtra)
+library(rattle)
+library(RColorBrewer)
+library(stats)
+library(Hmisc)
+library(ggpubr)
+library(mlbench)
+library(MLmetrics)
+library(DDoutlier)
+
+##################################
+# Loading source and
+# formulating the train set
+##################################
+data(Satellite)
+Satellite <- as.data.frame(Satellite)
+
+Satellite_Reference <- Satellite
+
+##################################
+# Creating outlier labels
+##################################
+Satellite_Outlier_Label <- Satellite$classes %in% c("damp grey soil",
+                                                    "cotton crop", 
+                                                    "vegetation stubble")
+
+##################################
+# Formulating an unlabeled dataset
+##################################
+Satellite <- Satellite[, names(Satellite)[names(Satellite) != "classes"]]
+Satellite$Status <- ifelse(Satellite_Outlier_Label==TRUE,
+                            "Outlier",
+                            "Valid")
+Satellite$Status <- as.factor(Satellite$Status)
+Satellite$Status <- factor(Satellite$Status,
+                           levels = c("Valid",
+                                      "Outlier"))
+
+##################################
+# Performing a general exploration of the data set
+##################################
+dim(Satellite)
+str(Satellite)
+summary(Satellite)
+describe(Satellite)
+
+##################################
+# Formulating a data type assessment summary
+##################################
+PDA <- Satellite
+(PDA.Summary <- data.frame(
+  Column.Index=c(1:length(names(PDA))),
+  Column.Name= names(PDA), 
+  Column.Type=sapply(PDA, function(x) class(x)), 
+  row.names=NULL)
+)
+```
+
+</details>
+
+##  1.2 Data Quality Assessment
+|
+| **[A]** No missing observations noted for any variable.
+|
+| **[B]** No low variance observed for any variable with First.Second.Mode.Ratio>5.
+|
+| **[C]** No low variance observed for any variable with Unique.Count.Ratio<0.01.
+|
+| **[D]** No high skewness observed for any variable with Skewness>3 or Skewness<(-3).
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DQA <- Satellite
+DQA.Descriptors <- DQA[, names(DQA)[names(DQA) != "Status"]]
+
+##################################
+# Formulating an overall data quality assessment summary
+##################################
+(DQA.Summary <- data.frame(
+  Column.Index=c(1:length(names(DQA))),
+  Column.Name= names(DQA),
+  Column.Type=sapply(DQA, function(x) class(x)),
+  Row.Count=sapply(DQA, function(x) nrow(DQA)),
+  NA.Count=sapply(DQA,function(x)sum(is.na(x))),
+  Fill.Rate=sapply(DQA,function(x)format(round((sum(!is.na(x))/nrow(DQA)),3),nsmall=3)),
+  row.names=NULL)
+)
+
+##################################
+# Listing all descriptors
+##################################
+DQA.Descriptors <- DQA
+
+##################################
+# Listing all numeric Descriptors
+##################################
+DQA.Descriptors.Numeric <- DQA.Descriptors[,sapply(DQA.Descriptors, is.numeric)]
+
+if (length(names(DQA.Descriptors.Numeric))>0) {
+    print(paste0("There are ",
+               (length(names(DQA.Descriptors.Numeric))),
+               " numeric descriptor variable(s)."))
+} else {
+  print("There are no numeric descriptor variables.")
+}
+
+##################################
+# Listing all factor Descriptors
+##################################
+DQA.Descriptors.Factor <- DQA.Descriptors[,sapply(DQA.Descriptors, is.factor)]
+
+if (length(names(DQA.Descriptors.Factor))>0) {
+    print(paste0("There are ",
+               (length(names(DQA.Descriptors.Factor))),
+               " factor descriptor variable(s)."))
+} else {
+  print("There are no factor descriptor variables.")
+}
+
+##################################
+# Formulating a data quality assessment summary for factor Descriptors
+##################################
+if (length(names(DQA.Descriptors.Factor))>0) {
+
+  ##################################
+  # Formulating a function to determine the first mode
+  ##################################
+  FirstModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    ux[tab == max(tab)]
+  }
+
+  ##################################
+  # Formulating a function to determine the second mode
+  ##################################
+  SecondModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    fm = ux[tab == max(tab)]
+    sm = x[!(x %in% fm)]
+    usm <- unique(sm)
+    tabsm <- tabulate(match(sm, usm))
+    ifelse(is.na(usm[tabsm == max(tabsm)])==TRUE,
+           return("x"),
+           return(usm[tabsm == max(tabsm)]))
+  }
+
+  (DQA.Descriptors.Factor.Summary <- data.frame(
+  Column.Name= names(DQA.Descriptors.Factor),
+  Column.Type=sapply(DQA.Descriptors.Factor, function(x) class(x)),
+  Unique.Count=sapply(DQA.Descriptors.Factor, function(x) length(unique(x))),
+  First.Mode.Value=sapply(DQA.Descriptors.Factor, function(x) as.character(FirstModes(x)[1])),
+  Second.Mode.Value=sapply(DQA.Descriptors.Factor, function(x) as.character(SecondModes(x)[1])),
+  First.Mode.Count=sapply(DQA.Descriptors.Factor, function(x) sum(na.omit(x) == FirstModes(x)[1])),
+  Second.Mode.Count=sapply(DQA.Descriptors.Factor, function(x) sum(na.omit(x) == SecondModes(x)[1])),
+  Unique.Count.Ratio=sapply(DQA.Descriptors.Factor, function(x) format(round((length(unique(x))/nrow(DQA.Descriptors.Factor)),3), nsmall=3)),
+  First.Second.Mode.Ratio=sapply(DQA.Descriptors.Factor, function(x) format(round((sum(na.omit(x) == FirstModes(x)[1])/sum(na.omit(x) == SecondModes(x)[1])),3), nsmall=3)),
+  row.names=NULL)
+  )
+
+}
+
+##################################
+# Formulating a data quality assessment summary for numeric Descriptors
+##################################
+if (length(names(DQA.Descriptors.Numeric))>0) {
+
+  ##################################
+  # Formulating a function to determine the first mode
+  ##################################
+  FirstModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    ux[tab == max(tab)]
+  }
+
+  ##################################
+  # Formulating a function to determine the second mode
+  ##################################
+  SecondModes <- function(x) {
+    ux <- unique(na.omit(x))
+    tab <- tabulate(match(x, ux))
+    fm = ux[tab == max(tab)]
+    sm = na.omit(x)[!(na.omit(x) %in% fm)]
+    usm <- unique(sm)
+    tabsm <- tabulate(match(sm, usm))
+    ifelse(is.na(usm[tabsm == max(tabsm)])==TRUE,
+           return(0.00001),
+           return(usm[tabsm == max(tabsm)]))
+  }
+
+  (DQA.Descriptors.Numeric.Summary <- data.frame(
+  Column.Name= names(DQA.Descriptors.Numeric),
+  Column.Type=sapply(DQA.Descriptors.Numeric, function(x) class(x)),
+  Unique.Count=sapply(DQA.Descriptors.Numeric, function(x) length(unique(x))),
+  Unique.Count.Ratio=sapply(DQA.Descriptors.Numeric, function(x) format(round((length(unique(x))/nrow(DQA.Descriptors.Numeric)),3), nsmall=3)),
+  First.Mode.Value=sapply(DQA.Descriptors.Numeric, function(x) format(round((FirstModes(x)[1]),3),nsmall=3)),
+  Second.Mode.Value=sapply(DQA.Descriptors.Numeric, function(x) format(round((SecondModes(x)[1]),3),nsmall=3)),
+  First.Mode.Count=sapply(DQA.Descriptors.Numeric, function(x) sum(na.omit(x) == FirstModes(x)[1])),
+  Second.Mode.Count=sapply(DQA.Descriptors.Numeric, function(x) sum(na.omit(x) == SecondModes(x)[1])),
+  First.Second.Mode.Ratio=sapply(DQA.Descriptors.Numeric, function(x) format(round((sum(na.omit(x) == FirstModes(x)[1])/sum(na.omit(x) == SecondModes(x)[1])),3), nsmall=3)),
+  Minimum=sapply(DQA.Descriptors.Numeric, function(x) format(round(min(x,na.rm = TRUE),3), nsmall=3)),
+  Mean=sapply(DQA.Descriptors.Numeric, function(x) format(round(mean(x,na.rm = TRUE),3), nsmall=3)),
+  Median=sapply(DQA.Descriptors.Numeric, function(x) format(round(median(x,na.rm = TRUE),3), nsmall=3)),
+  Maximum=sapply(DQA.Descriptors.Numeric, function(x) format(round(max(x,na.rm = TRUE),3), nsmall=3)),
+  Skewness=sapply(DQA.Descriptors.Numeric, function(x) format(round(skewness(x,na.rm = TRUE),3), nsmall=3)),
+  Kurtosis=sapply(DQA.Descriptors.Numeric, function(x) format(round(kurtosis(x,na.rm = TRUE),3), nsmall=3)),
+  Percentile25th=sapply(DQA.Descriptors.Numeric, function(x) format(round(quantile(x,probs=0.25,na.rm = TRUE),3), nsmall=3)),
+  Percentile75th=sapply(DQA.Descriptors.Numeric, function(x) format(round(quantile(x,probs=0.75,na.rm = TRUE),3), nsmall=3)),
+  row.names=NULL)
+  )
+
+}
+
+##################################
+# Identifying potential data quality issues
+##################################
+
+##################################
+# Checking for missing observations
+##################################
+if ((nrow(DQA.Summary[DQA.Summary$NA.Count>0,]))>0){
+  print(paste0("Missing observations noted for ",
+               (nrow(DQA.Summary[DQA.Summary$NA.Count>0,])),
+               " variable(s) with NA.Count>0 and Fill.Rate<1.0."))
+  DQA.Summary[DQA.Summary$NA.Count>0,]
+} else {
+  print("No missing observations noted.")
+}
+
+##################################
+# Checking for zero or near-zero variance Descriptors
+##################################
+if (length(names(DQA.Descriptors.Factor))==0) {
+  print("No factor descriptors noted.")
+} else if (nrow(DQA.Descriptors.Factor.Summary[as.numeric(as.character(DQA.Descriptors.Factor.Summary$First.Second.Mode.Ratio))>5,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Descriptors.Factor.Summary[as.numeric(as.character(DQA.Descriptors.Factor.Summary$First.Second.Mode.Ratio))>5,])),
+               " factor variable(s) with First.Second.Mode.Ratio>5."))
+  DQA.Descriptors.Factor.Summary[as.numeric(as.character(DQA.Descriptors.Factor.Summary$First.Second.Mode.Ratio))>5,]
+} else {
+  print("No low variance factor descriptors due to high first-second mode ratio noted.")
+}
+
+if (length(names(DQA.Descriptors.Numeric))==0) {
+  print("No numeric descriptors noted.")
+} else if (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$First.Second.Mode.Ratio))>5,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$First.Second.Mode.Ratio))>5,])),
+               " numeric variable(s) with First.Second.Mode.Ratio>5."))
+  DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$First.Second.Mode.Ratio))>5,]
+} else {
+  print("No low variance numeric descriptors due to high first-second mode ratio noted.")
+}
+
+if (length(names(DQA.Descriptors.Numeric))==0) {
+  print("No numeric descriptors noted.")
+} else if (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Unique.Count.Ratio))<0.01,])>0){
+  print(paste0("Low variance observed for ",
+               (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Unique.Count.Ratio))<0.01,])),
+               " numeric variable(s) with Unique.Count.Ratio<0.01."))
+  DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Unique.Count.Ratio))<0.01,]
+} else {
+  print("No low variance numeric descriptors due to low unique count ratio noted.")
+}
+
+##################################
+# Checking for skewed Descriptors
+##################################
+if (length(names(DQA.Descriptors.Numeric))==0) {
+  print("No numeric descriptors noted.")
+} else if (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))>3 |
+                                               as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))<(-3),])>0){
+  print(paste0("High skewness observed for ",
+  (nrow(DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))>3 |
+                                               as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))<(-3),])),
+  " numeric variable(s) with Skewness>3 or Skewness<(-3)."))
+  DQA.Descriptors.Numeric.Summary[as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))>3 |
+                                 as.numeric(as.character(DQA.Descriptors.Numeric.Summary$Skewness))<(-3),]
+} else {
+  print("No skewed numeric descriptors noted.")
+}
+
+```
+
+</details>
+
+##  1.3 Data Preprocessing
+
+###  1.3.1 Centering and Scaling
+|
+| **[A]** To maintain an objective comparison across the different descriptors, centering and scaling transformation was applied on the numeric variables. The <span style="color: #0000FF">center</span> method from the <mark style="background-color: #CCECFF">**caret**</mark> package was implemented which subtracts the average value of a numeric variable to all the values. As a result of centering, the variables had zero mean values. In addition, the <span style="color: #0000FF">scale</span> method, also from the <mark style="background-color: #CCECFF">**caret**</mark> package, was applied which performs a center transformation with each value of the variable divided by its standard deviation. Scaling the data coerced the values to have a common standard deviation of one.
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.3.1, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+DPA <- Satellite
+
+##################################
+# Listing all descriptors
+##################################
+DPA.Descriptors <- DPA[, names(DPA)[names(DPA) != "Status"]]
+
+##################################
+# Listing all numeric descriptors
+##################################
+DPA.Descriptors.Numeric <- DPA.Descriptors[,sapply(DPA.Descriptors, is.numeric)]
+
+##################################
+# Applying a center and scale data transformation
+##################################
+DPA.Descriptors.Numeric_CenteredScaled <- preProcess(DPA.Descriptors.Numeric, 
+                                                     method = c("center","scale"))
+DPA.Descriptors.Numeric_CenteredScaledTransformed <- predict(DPA.Descriptors.Numeric_CenteredScaled, DPA.Descriptors.Numeric)
+row.names(DPA.Descriptors.Numeric_CenteredScaledTransformed) <- NULL
+
+```
+
+</details>
+
+###  1.3.2 Dimensionality Reduction
+|
+| **[A]** Considering the high dimensional nature of the dataset, Principal Component Analysis (PCA) was applied to summarize the information content from the 36 descriptors by means of a smaller set of summary indices composed of the first two principal components, enabling a more efficient visualization and analysis.
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.3.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+Status <- Satellite$Status
+Satellite_Transformed <- cbind(DPA.Descriptors.Numeric_CenteredScaledTransformed,
+                               Satellite$Status)
+
+DR <- as.data.frame(Satellite_Transformed)
+
+DR.Numeric <- DR[,sapply(DR, is.numeric)]
+
+##################################
+# Performing PCA
+##################################
+DR_PCA <- prcomp(DR.Numeric)
+
+##################################
+# Consolidating the PCA components
+##################################
+rownames(DR_PCA$x) <- NULL
+DR_PCA$x <- as.data.frame(DR_PCA$x)
+(DR_PCA_FULL <- cbind(DR_PCA$x, Status))
+
+##################################
+# Creating a data subset only containing
+# the first two principal components
+##################################
+(DR_PCA_SUBSET <- DR_PCA_FULL[,c("Status",
+                                "PC1",
+                                "PC2",
+                                "PC3",
+                                "PC4",
+                                "PC5",
+                                "PC6",
+                                "PC7",
+                                "PC8",
+                                "PC9",
+                                "PC10")])
+
+```
+
+</details>
+
+###  1.3.3 Pre-Processed Dataset
+|
+| **[A]** 6435 rows (observations)
+| 
+| **[B]** 3 columns (variables)
+|      **[B.1]** 1/3 label = <span style="color: #FF0000">labs</span> variable (factor)
+|             **[B.1.1]** Category 1 = <span style="color: #FF0000">Status=Outlier</span> 
+|             **[B.1.2]** Category 2 = <span style="color: #FF0000">Status=Valid</span> 
+|      **[B.2]** 2/3 descriptors = 2/2 numeric
+|             **[B.2.1]** <span style="color: #FF0000">PC1</span> variable
+|             **[B.2.2]** <span style="color: #FF0000">PC2</span> variable 
+| 
+| **[C]** Pre-processing actions applied:
+|      **[C.1]** Centering and scaling applied to improve data quality
+|      **[C.2]** PCA transformation to reduce the number of features into a workable subset
+| 
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.3.3, warning=FALSE, message=FALSE}
+##################################
+# Gathering deascriptive statistics
+##################################
+(DR_PCA_SUBSET_Skimmed <- skim(as.data.frame(DR_PCA_SUBSET)))
+
+```
+
+</details>
+
+## 1.4 Data Exploration
+|
+| **[A]** From a univariate sense, principal component descriptors demonstrated various relationship patterns across the different levels of the <span style="color: #FF0000">Status</span> variable.
+|             **[A.1.1]** <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span> cases are differentially expressed in terms of the <span style="color: #FF0000">PC1</span>, <span style="color: #FF0000">PC2</span> and <span style="color: #FF0000">PC3</span> variables.
+|             **[A.1.2]** <span style="color: #FF0000">Status=Outlier</span> showed a wider range as compared to the <span style="color: #FF0000">Status=Outlier</span> cases are in terms of the <span style="color: #FF0000">PC5</span>, <span style="color: #FF0000">PC7</span> and <span style="color: #FF0000">PC9</span> variables.
+|
+| **[B]** From a multivariate sense, pairwise analysis between the principal component descriptors demonstrated the following observations between the <span style="color: #FF0000">Status</span> variable levels.
+|             **[B.1.1]** Overlapping orthogonal clustering patterns observed between the <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span> cases with the pairwise comparison across the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> variables.
+|             **[B.1.2]** Overlapping concentric clustering patterns observed between the <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span> cases with the pairwise comparison across the <span style="color: #FF0000">PC5</span>, <span style="color: #FF0000">PC7</span> and <span style="color: #FF0000">PC9</span> variables.
+|
+| **[C]** To better visualize outlier scores through a heatmap, the subsequent analysis will be conducted using the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> variables.
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.4, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+EDA <- as.data.frame(DR_PCA_SUBSET)
+
+EDA$Algorithm <- rep("PCA-BASE",nrow(EDA))
+
+##################################
+# Creating a function to define the
+# range of descriptors for plotting
+##################################
+
+featurePlotRange <- function(start,end){
+
+  ##################################
+  # Listing all Descriptors
+  ##################################
+  EDA.Descriptors <- EDA[,start:end]
+  EDA.Descriptors.Numeric <- EDA.Descriptors[,sapply(EDA.Descriptors, is.numeric)]
+
+  ##################################
+  # Formulating the box plots
+  ##################################
+  featurePlotResult <- featurePlot(x = EDA.Descriptors.Numeric,
+            y = EDA$Status,
+            plot = "box",
+            scales = list(x = list(relation="free", rot = 90),
+                          y = list(relation="free")),
+            adjust = 1.5,
+            pch = "|",
+            layout = c(2,ncol(EDA.Descriptors.Numeric)/2))
+
+  return(featurePlotResult)
+
+}
+
+##################################
+# Creating univariate plots
+# for the principal components
+# grouped by status
+##################################
+featurePlotRange(1,11)
+
+##################################
+# Creating multivariate plots
+# for the principal components
+# grouped by status
+##################################
+splom(~EDA[,sapply(EDA, is.numeric)],
+      groups = EDA$Status,
+      pch = 16,
+      cex = 1,
+      alpha = 0.45,
+      auto.key = list(points = TRUE, space = "top"),
+      main = "Pairwise Scatterplots of Principal Component Descriptors",
+      xlab = "PCA" )
+
+DR_PCA_SUBSET <- DR_PCA_FULL[,c("Status",
+                                "PC1",
+                                "PC2")]
+
+describe(DR_PCA_SUBSET)
+
+EDA <- as.data.frame(DR_PCA_SUBSET)
+
+EDA$Algorithm <- rep("PCA-BASE",nrow(EDA))
+
+##################################
+# Creating multivariate plots
+# for the principal components
+# grouped by status
+##################################
+splom(~EDA[,sapply(EDA, is.numeric)],
+      groups = EDA$Status,
+      pch = 16,
+      cex = 2,
+      alpha = 0.45,
+      auto.key = list(points = TRUE, space = "top"),
+      main = "Pairwise Scatterplots of Principal Component Descriptors",
+      xlab = "PCA" )
+
+```
+
+</details>
+
+## 1.5 Density and Distance-Based Anomaly Detection
+
+###  1.5.1. Connectivity-Based Outlier Factor (COF)
+|
+| [Connectivity-Based Outlier Factor](https://link.springer.com/chapter/10.1007/3-540-47887-6_53) computes the connectivity-based outlier factor for observations, being the comparison of chaining-distances between observation subject to outlier scoring and neighboring observations. 
+|
+| **[A]** The COF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to construct a set-based nearest-path with and the number of neighbors for each observation to compare chaining-distance with, held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.55987
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.1, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the COF Algorithm
+##################################
+OD_COF <- COF(OD, k=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_COF_PredictedScores <- OD_COF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_COF_PredictedScores)
+min(OD_COF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_COF_Summary <- DR_PCA_SUBSET
+OD_COF_Summary$Scores <- OD_COF_PredictedScores
+OD_COF_Summary$Label <- rep("COF", nrow(OD_COF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_COF_Scatterplot <- ggplot(OD_COF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Connectivity-Based Outlier Factor (COF)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_COF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_COF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the COF Algorithm
+##################################
+Status <- ifelse(OD_COF_Summary$Status=="Valid",0,1)
+
+(OD_COF_ROCCurveAUC <- AUC(OD_COF_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.2. Distance-Based Outlier Detection (DB)
+|
+| [Distance-Based Outlier Detection](https://dl.acm.org/doi/10.5555/782010.782021) computes a neighborhood for each observation given a radius (argument ’d’) and returns the number of neighbors within the neighborhood. Observations are classified as inliers or outliers, based on a proportion (argument ’fraction’) of observations to be within the neighborhood. 
+|
+| **[A]** The DB algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 2 hyperparameterS:
+|      **[B.1]** <span style="color: #FF0000">d</span> = radius of the neighborhood held constant at a value of 1.
+|      **[B.2]** <span style="color: #FF0000">fraction</span> = proportion of the number of observations to be within the neighborhood for observations to be classified as inliers, held constant at a value of 0.05.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.67308
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.2, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the DB Algorithm
+##################################
+OD_DB <- DB(OD, d=1, fraction=0.05)$classification
+
+##################################
+# Determining the outlier classes
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_DB_PredictedClass <- OD_DB
+
+##################################
+# Consolidating the outlier classes
+##################################
+OD_DB_Summary <- DR_PCA_SUBSET
+OD_DB_Summary$Class <- OD_DB_PredictedClass
+OD_DB_Summary$Status <- as.character(OD_DB_Summary$Status)
+OD_DB_Summary$Label <- rep("DB", nrow(OD_DB_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# by outlier classes
+##################################
+(OD_DB_Scatterplot <- ggplot(OD_DB_Summary, 
+                             aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Classes : Distance-Based Outlier Detection (DB)"))
+
+##################################
+# Exploring the outlier classes
+# between the valid and outlier points
+##################################
+Class_Status_Data <- as.data.frame(cbind(OD_DB_Summary$Class,
+                                         OD_DB_Summary$Status))
+colnames(Class_Status_Data) <- c("Class","Status")
+Class_Status_Proportion <- as.data.frame(prop.table(table(Class_Status_Data), 2))
+Class_Status_Proportion$Label <- rep("DB", nrow(Class_Status_Proportion))
+Class_Status_Proportion
+
+barchart(Freq ~ Status | Label,
+         data = Class_Status_Proportion,
+         groups = Class,
+         stack = TRUE,
+         ylab = "Proportion",
+         main = "Outlier Classes : Local Correlation Integral (DB)",
+         xlab = "Status",
+         auto.key = list(adj = 1))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the DB Algorithm
+##################################
+Status <- ifelse(OD_DB_Summary$Status=="Valid",0,1)
+OD_DB_PredictedClassLevel <- ifelse(OD_DB_Summary$Class=="Inlier",0,1)
+
+(OD_DB_ROCCurveAUC <- AUC(OD_DB_PredictedClassLevel, Status))
+
+```
+
+</details>
+
+###  1.5.3. Influenced Outlierness (INFLO)
+|
+| [Influenced Outlierness](https://link.springer.com/chapter/10.1007/11731139_68) computes the influenced outlierness score for observations, being the comparison of density in neighborhood of observation subject to outlier scoring and density in the reverse neighborhood. 
+|
+| **[A]** The INFLO algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of reverse k-nearest neighbors to compare density with, held constant at a value of 500.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.62623
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.3, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the INFLO Algorithm
+##################################
+OD_INFLO <- INFLO(OD, k=500)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_INFLO_PredictedScores <- OD_INFLO
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_INFLO_PredictedScores)
+min(OD_INFLO_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_INFLO_Summary <- DR_PCA_SUBSET
+OD_INFLO_Summary$Scores <- OD_INFLO_PredictedScores
+OD_INFLO_Summary$Label <- rep("INFLO", nrow(OD_INFLO_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_INFLO_Scatterplot <- ggplot(OD_INFLO_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Influenced Outlierness (INFLO)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_INFLO_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_INFLO_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the INFLO Algorithm
+##################################
+Status <- ifelse(OD_INFLO_Summary$Status=="Valid",0,1)
+
+(OD_INFLO_ROCCurveAUC <- AUC(OD_INFLO_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.4. Kernel-Density Estimation Outlier Score (KDEOS)
+|
+| [Kernel-Density Estimation Outlier Score](https://epubs.siam.org/doi/10.1137/1.9781611973440.63) computes a kernel density estimation over a user-given range of k-nearest neighbors. The score is normalized between 0 and 1, such that observation with 1 has the lowest density estimation and greatest outlierness. A gaussian kernel is used for estimation with a bandwidth being the reachability distance for neighboring observations. 
+|
+| **[A]** The KDEOS algorithm with gaussian kernel was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 2 hyperparameters:
+|      **[B.1]** <span style="color: #FF0000">k_min</span> = k parameter starting the k-range held constant at a value of 100.
+|      **[B.1]** <span style="color: #FF0000">k_max</span> = k parameter ending the k-range held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.56088
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.4, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the KDEOS Algorithm
+##################################
+OD_KDEOS <- KDEOS(OD, k_min=100, k_max=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_KDEOS_PredictedScores <- OD_KDEOS
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_KDEOS_PredictedScores)
+min(OD_KDEOS_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_KDEOS_Summary <- DR_PCA_SUBSET
+OD_KDEOS_Summary$Scores <- OD_KDEOS_PredictedScores
+OD_KDEOS_Summary$Label <- rep("KDEOS", nrow(OD_KDEOS_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_KDEOS_Scatterplot <- ggplot(OD_KDEOS_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Kernel-Density Estimation Outlier Score (KDEOS)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_KDEOS_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_KDEOS_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the KDEOS Algorithm
+##################################
+Status <- ifelse(OD_KDEOS_Summary$Status=="Valid",0,1)
+
+(OD_KDEOS_ROCCurveAUC <- AUC(OD_KDEOS_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.5. Aggregated K-Nearest Neighbors Distance (KNN_AGG)
+|
+| [Aggregated K-Nearest Neighbors Distance](https://link.springer.com/chapter/10.1007/3-540-45681-3_2) computes the aggregated distance to neighboring observations by aggregating the results from k_min to k_max nearest neighbors. 
+|
+| **[A]** The KNN-AGG algorithm with gaussian kernel was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 2 hyperparameters:
+|      **[B.1]** <span style="color: #FF0000">k_min</span> = k parameter starting the k-range held constant at a value of 100.
+|      **[B.1]** <span style="color: #FF0000">k_max</span> = k parameter ending the k-range held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to sufficiently discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.79965
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.5, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the KNN_AGG Algorithm
+##################################
+OD_KNN_AGG <- KNN_AGG(OD, k_min=100, k_max=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_KNN_AGG_PredictedScores <- OD_KNN_AGG
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_KNN_AGG_PredictedScores)
+min(OD_KNN_AGG_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_KNN_AGG_Summary <- DR_PCA_SUBSET
+OD_KNN_AGG_Summary$Scores <- OD_KNN_AGG_PredictedScores
+OD_KNN_AGG_Summary$Label <- rep("KNN_AGG", nrow(OD_KNN_AGG_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_KNN_AGG_Scatterplot <- ggplot(OD_KNN_AGG_Summary, 
+                                  aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Aggregated K-Nearest Neighbors Distance (KNN_AGG)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_KNN_AGG_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_KNN_AGG_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the KNN_AGG Algorithm
+##################################
+Status <- ifelse(OD_KNN_AGG_Summary$Status=="Valid",0,1)
+
+(OD_KNN_AGG_ROCCurveAUC <- AUC(OD_KNN_AGG_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.6. In-Degree for Observations in a K-Nearest Neighbors Graph (KNN_IN)
+|
+| [In-Degree for Observations in a K-Nearest Neighbors Graph](https://ieeexplore.ieee.org/document/1334558/authors#authors) computes the in-degree, being the number of reverse neighbors, using a k-nearest neighbors graph.
+|
+| **[A]** The KNN_IN algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to construct a graph with, held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.61995
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.6, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the KNN_IN Algorithm
+##################################
+OD_KNN_IN <- KNN_IN(OD, k=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_KNN_IN_PredictedScores <- OD_KNN_IN
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_KNN_IN_PredictedScores)
+min(OD_KNN_IN_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_KNN_IN_Summary <- DR_PCA_SUBSET
+OD_KNN_IN_Summary$Scores <- OD_KNN_IN_PredictedScores
+OD_KNN_IN_Summary$Label <- rep("KNN_IN", nrow(OD_KNN_IN_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_KNN_IN_Scatterplot <- ggplot(OD_KNN_IN_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#AA00001A", high="#0000AA1A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : In-Degree for Observations in a K-Nearest Neighbors Graph (KNN_IN)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_KNN_IN_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_KNN_IN_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the KNN_IN Algorithm
+##################################
+Status <- ifelse(OD_KNN_IN_Summary$Status=="Valid",0,1)
+
+(OD_KNN_IN_ROCCurveAUC <- 1-AUC(OD_KNN_IN_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.7. Sum of Distance to K-Nearest Neighbors (KNN-SUM)
+|
+| [Sum of Distance to K-Nearest Neighbors](https://cran.r-project.org/web/packages/DDoutlier/DDoutlier.pdf) computes the sum of distance to neighboring observations.
+|
+| **[A]** The KNN_SUM algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to sufficiently discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.80504
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.7, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the KNN_SUM Algorithm
+##################################
+OD_KNN_SUM <- KNN_SUM(OD, k=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_KNN_SUM_PredictedScores <- OD_KNN_SUM
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_KNN_SUM_PredictedScores)
+min(OD_KNN_SUM_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_KNN_SUM_Summary <- DR_PCA_SUBSET
+OD_KNN_SUM_Summary$Scores <- OD_KNN_SUM_PredictedScores
+OD_KNN_SUM_Summary$Label <- rep("KNN_SUM", nrow(OD_KNN_SUM_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_KNN_SUM_Scatterplot <- ggplot(OD_KNN_SUM_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Sum of Distance to K-Nearest Neighbors (KNN_SUM)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_KNN_SUM_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_KNN_SUM_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the KNN_SUM Algorithm
+##################################
+Status <- ifelse(OD_KNN_SUM_Summary$Status=="Valid",0,1)
+
+(OD_KNN_SUM_ROCCurveAUC <- AUC(OD_KNN_SUM_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.8. Local Density Factor (LDF)
+|
+| [Local Density Factor](https://link.springer.com/chapter/10.1007/978-3-540-73499-4_6) computes a kernel density estimation, called LDE, over a user-given number of k-nearest neighbors. The LDF score is the comparison of Local Density Estimate (LDE) for an observation to its neighboring observations.
+|
+| **[A]** The LDF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 3 hyperparameters:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to compare density estimation with, held constant at a value of 200.
+|      **[B.2]** <span style="color: #FF0000">h</span> = bandwidth for kernel functions held constant at a value of 1.
+|      **[B.3]** <span style="color: #FF0000">c</span> = scaling constant for comparison of average local density estimate for an observation and its neighboring observation, held constant at a value of 1.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.62528
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.8, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the LDF Algorithm
+##################################
+OD_LDF <- LDF(OD, k=200, h=1, c=1)$LDF
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LDF_PredictedScores <- OD_LDF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_LDF_PredictedScores)
+min(OD_LDF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_LDF_Summary <- DR_PCA_SUBSET
+OD_LDF_Summary$Scores <- OD_LDF_PredictedScores
+OD_LDF_Summary$Label <- rep("LDF", nrow(OD_LDF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_LDF_Scatterplot <- ggplot(OD_LDF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Local Density Factor (LDF)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_LDF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_LDF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LDF Algorithm
+##################################
+Status <- ifelse(OD_LDF_Summary$Status=="Valid",0,1)
+
+(OD_LDF_ROCCurveAUC <- AUC(OD_LDF_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.9. Local Distance-Based Outlier Factor (LDOF)
+|
+| [Local Distance-Based Outlier Factor](https://link.springer.com/chapter/10.1007/978-3-642-01307-2_84) computes distance for an observations to its to k-nearest neighbors and compare the distance with the average distances between the nearest neighbors.
+|
+| **[A]** The LDOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of nearest neighbors to compare distances with, held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.53336
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.9, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the LDOF Algorithm
+##################################
+OD_LDOF <- LDOF(OD, k=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LDOF_PredictedScores <- OD_LDOF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_LDOF_PredictedScores)
+min(OD_LDOF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_LDOF_Summary <- DR_PCA_SUBSET
+OD_LDOF_Summary$Scores <- OD_LDOF_PredictedScores
+OD_LDOF_Summary$Label <- rep("LDOF", nrow(OD_LDOF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_LDOF_Scatterplot <- ggplot(OD_LDOF_Summary, 
+                               aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Local Distance-Based Outlier Factor (LDOF)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_LDOF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_LDOF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LDOF Algorithm
+##################################
+Status <- ifelse(OD_LDOF_Summary$Status=="Valid",0,1)
+
+(OD_LDOF_ROCCurveAUC <- AUC(OD_LDOF_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.10. Local Correlation Integral (LOCI)
+|
+| [Local Correlation Integral](https://ieeexplore.ieee.org/document/1260802) computes a counting neighborhood to the nearest-neighbor nearest observations, where the radius is equal to the outermost observation. Within the counting neighborhood each observation has a sampling neighborhood of which the size is determined by the alpha input parameter.
+|
+| **[A]** The LOCI algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 3 hyperparameterS:
+|      **[B.1]** <span style="color: #FF0000">alpha</span> = size of the sampling neighborhood, as a proportion of the counting neighborhood, for observations to identify other observations in their respective neighborhood, held constant at a value of 0.75.
+|      **[B.2]** <span style="color: #FF0000">nn</span> = number of nearest neighbors to compare sampling neighborhood with, held constant at a value of 20.
+|      **[B.3]** <span style="color: #FF0000">k</span> = number of standard deviations the sampling neighborhood of an observation should differ from the sampling neighborhood of neighboring observations, to be an outlier, held constant at a value of 1.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.51614
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.10, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the LOCI Algorithm
+##################################
+OD_LOCI <- LOCI(OD, alpha=0.75, nn=20, k=1)$class
+
+##################################
+# Determining the outlier classes
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LOCI_PredictedClass <- OD_LOCI
+
+##################################
+# Consolidating the outlier classes
+##################################
+OD_LOCI_Summary <- DR_PCA_SUBSET
+OD_LOCI_Summary$Class <- OD_LOCI_PredictedClass
+OD_LOCI_Summary$Status <- as.character(OD_LOCI_Summary$Status)
+OD_LOCI_Summary$Label <- rep("LOCI", nrow(OD_LOCI_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# by outlier classes
+##################################
+(OD_LOCI_Scatterplot <- ggplot(OD_LOCI_Summary, 
+                               aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Classes : Local Correlation Integral (LOCI)"))
+
+##################################
+# Exploring the outlier classes
+# between the valid and outlier points
+##################################
+Class_Status_Data <- as.data.frame(cbind(OD_LOCI_Summary$Class,
+                                         OD_LOCI_Summary$Status))
+colnames(Class_Status_Data) <- c("Class","Status")
+Class_Status_Proportion <- as.data.frame(prop.table(table(Class_Status_Data), 2))
+Class_Status_Proportion$Label <- rep("LOCI", nrow(Class_Status_Proportion))
+Class_Status_Proportion
+
+barchart(Freq ~ Status | Label,
+         data = Class_Status_Proportion,
+         groups = Class,
+         stack = TRUE,
+         ylab = "Proportion",
+         main = "Outlier Classes : Local Correlation Integral (LOCI)",
+         xlab = "Status",
+         auto.key = list(adj = 1))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LOCI Algorithm
+##################################
+Status <- ifelse(OD_LOCI_Summary$Status=="Valid",0,1)
+OD_LOCI_PredictedClassLevel <- ifelse(OD_LOCI_Summary$Class=="Inlier",0,1)
+
+(OD_LOCI_ROCCurveAUC <- AUC(OD_LOCI_PredictedClassLevel, Status))
+
+```
+
+</details>
+
+###  1.5.11. Local Outlier Factor (LOF)
+|
+| [Local Outlier Factor](https://dl.acm.org/doi/10.1145/335191.335388) computes a local density for observations with a user-given k-nearest neighbors. The density is compared to the density of the respective nearest neighbors, resulting in the local outlier factor.
+|
+| **[A]** The LOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm contains 1 hyperparameter:
+|      **[B.1]** <span style="color: #FF0000">k</span> = number of k-nearest neighbors to compare density with, held constant at a value of 200.
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.62018
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.11, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the LOF Algorithm
+##################################
+OD_LOF <- LOF(OD, k=200)
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_LOF_PredictedScores <- OD_LOF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_LOF_PredictedScores)
+min(OD_LOF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_LOF_Summary <- DR_PCA_SUBSET
+OD_LOF_Summary$Scores <- OD_LOF_PredictedScores
+OD_LOF_Summary$Label <- rep("LOF", nrow(OD_LOF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_LOF_Scatterplot <- ggplot(OD_LOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Local Outlier Factor (LOF)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_LOF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_LOF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the LOF Algorithm
+##################################
+Status <- ifelse(OD_LOF_Summary$Status=="Valid",0,1)
+
+(OD_LOF_ROCCurveAUC <- AUC(OD_LOF_PredictedScores, Status))
+
+```
+
+</details>
+
+###  1.5.12. Natural Outlier Factor (NOF)
+|
+| [Natural Outlier Factor](https://www.sciencedirect.com/science/article/abs/pii/S0950705115004013?via%3Dihub) computes the nearest and reverse nearest neighborhood for observations, based on the natural neighborhood algorithm. Density is compared between observations and their neighbors.
+|
+| **[A]** The NOF algorithm was implemented only for the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors using the <mark style="background-color: #CCECFF">**DDoutlier**</mark> package.  
+|
+| **[B]** The algorithm does not contain any hyperparameter:
+|
+| **[C]** Using the label information from the <span style="color: #FF0000">Status</span> variable defined prior to the analysis, the algorithm was not able to relatively discriminate between <span style="color: #FF0000">Status=Outlier</span> and <span style="color: #FF0000">Status=Valid</span>, as demonstrated by their differentially expressed outlier score densities.
+|      **[C.1]** ROC Curve AUC = 0.54914
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.5.12, warning=FALSE, message=FALSE}
+##################################
+# Loading dataset
+##################################
+OD <- as.data.frame(DR_PCA_SUBSET[,c(2:3)])
+
+##################################
+# Implementing the NOF Algorithm
+##################################
+OD_NOF <- NOF(OD)$NOF
+
+##################################
+# Determining the outlier scores
+# for anomaly detection
+# applied to the dataset
+##################################
+OD_NOF_PredictedScores <- OD_NOF
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+max(OD_NOF_PredictedScores)
+min(OD_NOF_PredictedScores)
+
+##################################
+# Consolidating the outlier scores
+##################################
+OD_NOF_Summary <- DR_PCA_SUBSET
+OD_NOF_Summary$Scores <- OD_NOF_PredictedScores
+OD_NOF_Summary$Label <- rep("NOF", nrow(OD_NOF_Summary))
+
+##################################
+# Plotting the scatterplot
+# for anomaly detection
+# adjusted to the outlier scores
+##################################
+(OD_NOF_Scatterplot <- ggplot(OD_NOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="top",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) +
+  ggtitle("Outlier Scores : Natural Outlier Factor (NOF)"))
+
+##################################
+# Exploring the outlier scores
+# between the valid and outlier points
+##################################
+densityplot( ~ Scores | Label,
+             data = OD_NOF_Summary,
+             groups = Status,
+             xlab = "Outlier Scores",
+             ylab = "Density",
+             auto.key = list(columns = (length(levels(OD_NOF_Summary$Status)))))
+
+##################################
+# Evaluating the apparent 
+# discrimination performance
+# of the NOF Algorithm
+##################################
+Status <- ifelse(OD_NOF_Summary$Status=="Valid",0,1)
+
+(OD_NOF_ROCCurveAUC <- AUC(OD_NOF_PredictedScores, Status))
+
+```
+
+</details>
+
+##  1.6 Consolidated Findings
+|
+| **[A]** The density and distance-based anomaly detection algorithms applied to the <span style="color: #FF0000">PC1</span> and <span style="color: #FF0000">PC2</span> principal component descriptors which were able to sufficiently capture the outlier points based on the higher estimated ROC curve AUC are the following :
+|      **[A.1]** **KNN_SUM : Sum of Distance to K-Nearest Neighbors** (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
+|             **[A.1.1]** ROC Curve AUC = 0.80504
+|      **[A.2]** **KNN_AGG : Aggregated K-Nearest Neighbors Distance** (<mark style="background-color: #CCECFF">**DDoutlier**</mark> package)
+|             **[A.2.1]** ROC Curve AUC = 0.79965
+|
+|
+
+<details><summary><mark style="background-color: #000000;color: #FFFFFF">**Code Chunk | Output**</mark></summary>
+
+```{r section_1.6, warning=FALSE, message=FALSE}
+##################################
+# Replotting the scatterplots
+##################################
+OD_COF_Scatterplot <- ggplot(OD_COF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_DB_Scatterplot <- ggplot(OD_DB_Summary, 
+                             aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_INFLO_Scatterplot <- ggplot(OD_INFLO_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KDEOS_Scatterplot <- ggplot(OD_KDEOS_Summary, 
+                                aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KNN_AGG_Scatterplot <- ggplot(OD_KNN_AGG_Summary, 
+                                  aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KNN_IN_Scatterplot <- ggplot(OD_KNN_IN_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#AA00001A", high="#0000AA1A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_KNN_SUM_Scatterplot <- ggplot(OD_KNN_SUM_Summary, 
+                                 aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LDF_Scatterplot <- ggplot(OD_LDF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LDOF_Scatterplot <- ggplot(OD_LDOF_Summary, 
+                               aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LOCI_Scatterplot <- ggplot(OD_LOCI_Summary, 
+                               aes(x=PC1, y=PC2, color=Class)) +
+  geom_point(size=3, alpha=0.10) +
+  scale_color_manual(values=c("#0000AA", "#AA0000")) +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_LOF_Scatterplot <- ggplot(OD_LOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_NOF_Scatterplot <- ggplot(OD_NOF_Summary, 
+                              aes(x=PC1, y=PC2, color=Scores, size= Scores)) +
+  geom_point() +
+  scale_color_gradient(low="#0000AA1A", high="#AA00001A") +
+  theme_bw() +
+  facet_grid(. ~ Label) +
+  scale_x_continuous(name="PC1", limits=c(-15,15),breaks=seq(-15,15,by=5)) +
+  scale_y_continuous(name="PC2", limits=c(-15,10),breaks=seq(-15,10,by=5)) +
+  theme(legend.position="none",
+        plot.title=element_text(color="black",size=15,face="bold",hjust=0.50)) 
+
+OD_Scatterplot <- ggarrange(OD_COF_Scatterplot,
+                            OD_DB_Scatterplot,
+                            OD_INFLO_Scatterplot,
+                            OD_KDEOS_Scatterplot,
+                            OD_KNN_AGG_Scatterplot,
+                            OD_KNN_IN_Scatterplot,
+                            OD_KNN_SUM_Scatterplot,
+                            OD_LDF_Scatterplot,
+                            OD_LDOF_Scatterplot,
+                            OD_LOCI_Scatterplot,
+                            OD_LOF_Scatterplot,
+                            OD_NOF_Scatterplot,
+                            ncol=4, nrow=3)
+
+annotate_figure(OD_Scatterplot,
+                top = text_grob("Outlier Scores | Classes", 
+                                color = "black", 
+                                face = "bold", 
+                                size = 14))
+
+##################################
+# Consolidating all evaluation results
+# using the apparent ROC Curve AUC metric
+##################################
+OutlierDetectionAlgorithm <- c('COF','DB','INFLO','KDEOS',
+                               'KNN_AGG','KNN_IN','KNN_SUM','LDF',
+                               'LDOF','LOCI','LOF','NOF')
+
+Set <- c(rep('ROC Curve AUC',12))
+
+OutlierDetectionMetrics <- c(OD_COF_ROCCurveAUC,
+                             OD_DB_ROCCurveAUC,
+                             OD_INFLO_ROCCurveAUC,
+                             OD_KDEOS_ROCCurveAUC,
+                             OD_KNN_AGG_ROCCurveAUC,
+                             OD_KNN_IN_ROCCurveAUC,
+                             OD_KNN_SUM_ROCCurveAUC,
+                             OD_LDF_ROCCurveAUC,
+                             OD_LDOF_ROCCurveAUC,
+                             OD_LOCI_ROCCurveAUC,
+                             OD_LOF_ROCCurveAUC,
+                             OD_NOF_ROCCurveAUC)
+
+OutlierDetectionPeformance_Summary <- as.data.frame(cbind(OutlierDetectionAlgorithm,
+                                                    Set,
+                                                    OutlierDetectionMetrics))
+
+OutlierDetectionPeformance_Summary$OutlierDetectionMetrics <- as.numeric(as.character(OutlierDetectionPeformance_Summary$OutlierDetectionMetrics))
+OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm <- factor(OutlierDetectionPeformance_Summary$OutlierDetectionAlgorithm,
+                                                      levels = c('COF',
+                                                                 'DB',
+                                                                 'INFLO',
+                                                                 'KDEOS',
+                                                                 'KNN_AGG',
+                                                                 'KNN_IN',
+                                                                 'KNN_SUM',
+                                                                 'LDF',
+                                                                 'LDOF',
+                                                                 'LOCI',
+                                                                 'LOF',
+                                                                 'NOF'))
+
+print(OutlierDetectionPeformance_Summary, row.names=FALSE)
+
+(OutlierDetectionPeformance_Summary_Plot <- dotplot(OutlierDetectionAlgorithm ~ OutlierDetectionMetrics,
+                          data = OutlierDetectionPeformance_Summary,
+                          groups = Set,
+                          main = "Anomaly Detection Algorithm Performance Comparison",
+                          ylab = "Algorithm",
+                          xlab = "Anomaly Detection Performance Metrics",
+                          auto.key = list(adj = 1),
+                          type=c("p", "h"),
+                          origin = 0,
+                          alpha = 0.45,
+                          pch = 16,
+                          cex = 2))
+
+```
+
+</details>
+|
+# **2. Summary** <a name="summary"></a>
+|
+| ![](D:/Github_Codes/ProjectPortfolio/Portfolio_Project_27/docs/Project27_Summary.png)
+|
+# **2. References**
+|
+| **[Book]** [Applied Predictive Modeling](http://appliedpredictivemodeling.com/) by Max Kuhn and Kjell Johnson
+| **[Book]** [An Introduction to Statistical Learning](https://www.statlearning.com/) by Gareth James, Daniela Witten, Trevor Hastie and Rob Tibshirani
+| **[Book]** [Multivariate Data Visualization with R](http://lmdvr.r-forge.r-project.org/figures/figures.html) by Deepayan Sarkar
+| **[Book]** [Machine Learning](https://bookdown.org/ssjackson300/Machine-Learning-Lecture-Notes/) by Samuel Jackson
+| **[Book]** [Data Modeling Methods](https://bookdown.org/larget_jacob/data-modeling-methods/) by Jacob Larget
+| **[Book]** [Introduction to R and Statistics](https://saestatsteaching.tech/) by University of Western Australia
+| **[Book]** [Feature Engineering and Selection: A Practical Approach for Predictive Models](http://www.feat.engineering/index.html) by Max Kuhn and Kjell Johnson
+| **[Book]** [Introduction to Research Methods](https://bookdown.org/ejvanholm/Textbook/) by Eric van Holm
+| **[R Package]** [AppliedPredictiveModeling](https://cran.r-project.org/web//packages/AppliedPredictiveModeling/AppliedPredictiveModeling.pdf) by Max Kuhn
+| **[R Package]** [caret](https://topepo.github.io/caret/index.html) by Max Kuhn
+| **[R Package]** [rpart](https://mran.microsoft.com/web/packages/rpart/rpart.pdf) by Terry Therneau and Beth Atkinson
+| **[R Package]** [lattice](https://cran.r-project.org/web/packages/lattice/lattice.pdf) by  Deepayan Sarkar
+| **[R Package]** [dplyr](https://cran.r-project.org/web/packages/dplyr/index.html/) by Hadley Wickham
+| **[R Package]** [moments](https://cran.r-project.org/web/packages/moments/index.html) by Lukasz Komsta and Frederick
+| **[R Package]** [skimr](https://cran.r-project.org/web/packages/skimr/skimr.pdf) by  Elin Waring
+| **[R Package]** [RANN](https://cran.r-project.org/web/packages/RANN/RANN.pdf) by  Sunil Arya, David Mount, Samuel Kemp and Gregory Jefferis
+| **[R Package]** [corrplot](https://cran.r-project.org/web/packages/corrplot/corrplot.pdf) by Taiyun Wei
+| **[R Package]** [tidyverse](https://cran.r-project.org/web/packages/tidyverse/tidyverse.pdf) by Hadley Wickham
+| **[R Package]** [lares](https://cran.rstudio.com/web/packages/lares/lares.pdf) by Bernardo Lares
+| **[R Package]** [DMwR](https://mran.microsoft.com/snapshot/2016-05-02/web/packages/DMwR/DMwR.pdf) by Luis Torgo
+| **[R Package]** [gridExtra](https://cran.r-project.org/web/packages/gridExtra/gridExtra.pdf) by Baptiste Auguie and Anton Antonov
+| **[R Package]** [rattle](https://cran.r-project.org/web/packages/rattle/rattle.pdf) by Graham Williams
+| **[R Package]** [RColorBrewer](https://cran.r-project.org/web//packages/RColorBrewer/RColorBrewer.pdf) by Erich Neuwirth
+| **[R Package]** [stats](https://search.r-project.org/R/refmans/stats/html/00Index.html) by R Core Team
+| **[R Package]** [Hmisc](https://cran.r-project.org/web/packages/Hmisc/Hmisc.pdf) by Frank Harrell
+| **[R Package]** [ggpubr](https://cran.microsoft.com/snapshot/2022-04-13/web/packages/ggpubr/ggpubr.pdf) by 	Alboukadel Kassambara
+| **[R Package]** [mlbench](https://cran.r-project.org/web/packages/mlbench/mlbench.pdf) by Friedrich Leisch and Evgenia Dimitriadou
+| **[R Package]** [MLmetrics](https://cran.r-project.org/web/packages/MLmetrics/MLmetrics.pdf) by Yachen Yan
+| **[R Package]** [DDOutlier](https://cran.r-project.org/web/packages/DDoutlier/DDoutlier.pdf) by Jacob Madsen
+| **[Article]** [Outlier detection with Local Outlier Factor (LOF)](https://scikit-learn.org/stable/auto_examples/neighbors/plot_lof_outlier_detection.html) by Scikit-Learn Team
+| **[Article]** [4 Automatic Outlier Detection Algorithms in Python](https://machinelearningmastery.com/model-based-outlier-detection-and-removal-in-python/) by Jason Brownlee
+| **[Article]** [Outlier Detection with Several Methods](https://scikit-learn.org/0.18/auto_examples/covariance/plot_outlier_detection.html) by Scikit-Learn Team
+| **[Article]** [Comparing Anomaly Detection Algorithms for Outlier Detection on Toy Datasets](https://scikit-learn.org/stable/auto_examples/miscellaneous/plot_anomaly_comparison.html) by Scikit-Learn Team
+| **[Article]** [Novelty and Outlier Detection](http://jaquesgrobler.github.io/Online-Scikit-Learn-stat-tut/modules/outlier_detection.html) by Scikit-Learn Team
+| **[Article]** [Metrics, Techniques and Tools of Anomaly Detection: A Survey](https://www.cse.wustl.edu/~jain/cse567-17/ftp/mttad/index.html) by Xuanfan Wu
+| **[Publication]** [Fast Outlier Detection in High Dimensional Spaces](https://link.springer.com/chapter/10.1007/3-540-45681-3_2) by Fabrizio Angiulli and Clara Pizzuti (International Conference on Knowledge Discovery and Data Mining (SIGKDD))
+| **[Publication]** [LOF: Identifying Density-Based Local Outliers](https://dl.acm.org/doi/10.1145/335191.335388) by Markus Breunig, Hans-Peter Kriegel, Raymond Ng and Jorg Sander ( International Conference On Management of Data)
+| **[Publication]** [RKOF: Robust Kernel-Based Local Outlier Detection](https://link.springer.com/chapter/10.1007/978-3-642-20847-8_23) by Jun Gao, Weiming Hu, Zhongfei (Mark) Zhang, Xiaoqin Zhang and Ou Wu (Pacific-Asia Conference on Knowledge Discovery and Data Mining: Advances in Knowledge Discovery and Data Mining)
+| **[Publication]** [Outlier Detection Using K-Nearest Neighbour Graph](https://ieeexplore.ieee.org/document/1334558/authors#authors) by Ville Hautamaki, Ismo Karkkainen and Pasi Franti (International Conference on Pattern Recognition)
+| **[Publication]** [A Non-Parameter Outlier Detection Algorithm Based on Natural Neighbor](https://www.sciencedirect.com/science/article/abs/pii/S0950705115004013?via%3Dihub) by Jinlong Huang, Qingsheng Zhu, Lijun Yang and Ji Feng (Knowledge-Based Systems)
+| **[Publication]** [Ranking Outliers Using Symmetric Neighborhood Relationship](https://link.springer.com/chapter/10.1007/11731139_68) by Wen Jin, Anthony K. H. Tung, Jiawei Han and Wei Wang (Pacific-Asia Conference on Knowledge Discovery and Data Mining (PAKDD))
+| **[Publication]** [A Unified Approach for Mining Outliers](https://dl.acm.org/doi/10.5555/782010.782021) by Edwin Knorr and Raymond Ng (Conference of the Centre for Advanced Studies on Collaborative Research (CASCON))
+| **[Publication]** [LOOP: Local Outlier Probabilities](https://dl.acm.org/doi/10.1145/1645953.1646195) by Hans-Peter Kriegel, Peer Kroger, Erich Schubert and Arthur Zimek (ACM Conference on Information and Knowledge Management)
+| **[Publication]** [Outlier Detection with Kernel Density Functions](https://link.springer.com/chapter/10.1007/978-3-540-73499-4_6) by Longin Jan Latecki, Aleksandar Lazarevic and Dragoljub Pokrajac (International Workshop on Machine Learning and Data Mining in Pattern Recognition: Machine Learning and Data Mining in Pattern Recognition)
+| **[Publication]** [LOCI: Fast Outlier Detection Using the Local Correlation Integral](https://ieeexplore.ieee.org/document/1260802) by Spiros Papadimitriou, Hiroyuki Kitagawa, Phillip B. Gibbons and Christos Faloutsos (International Conference on Data Engineering)
+| **[Publication]** [Generalized Outlier Detection with Flexible Kernel Density Estimates](https://epubs.siam.org/doi/10.1137/1.9781611973440.63) by Erich Schubert, Arthur Zimek, and Hans-Peter Kriegel (Proceedings of the 2014 SIAM International Conference on Data Mining)
+| **[Publication]** [Enhancing Effectiveness of Outlier Detections for Low Density Patterns](https://link.springer.com/chapter/10.1007/3-540-47887-6_53) byJian Tang, Zhixiang Chen, Ada Wai-chee Fu and David W. Cheung  (Pacific-Asia Conference on Knowledge Discovery and Data Mining (PAKDD))
+| **[Publication]** [A New Local Distance-Based Outlier Detection Approach for Scattered Real-World Data](https://link.springer.com/chapter/10.1007/978-3-642-01307-2_84) by Ke Zhang, Marcus Hutter and Huidong Jin (Pacific-Asia Conference on Knowledge Discovery and Data Mining (PAKDD))
+| **[Publication]** [Natural neighbor: A Self-Adaptive Neighborhood Method Without Parameter K](https://www.sciencedirect.com/science/article/abs/pii/S016786551630085X) by Qingsheng Zhu, Ji Feng and Jinlong Huang (Pattern Recognition Letters)
+| **[Course]** [Applied Data Mining and Statistical Learning](https://online.stat.psu.edu/stat508/) by Penn State Eberly College of Science
+|
+|
+|
+|
